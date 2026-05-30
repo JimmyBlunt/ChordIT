@@ -145,7 +145,7 @@ export function SettingsScreen() {
             </select>
           ) : (
             <div className="text-xs text-muted-foreground">
-              {s.mockMode ? "Mock Mode aktiv — schalte Mock Mode aus." : midiError ?? "Initialisiere…"}
+              {midiError ?? "Initialisiere…"}
             </div>
           )}
         </Field>
