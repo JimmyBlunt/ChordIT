@@ -88,13 +88,16 @@ export function SettingsScreen() {
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="MOCK MODE">
+        <Field label="MOCK MODE (INPUT)">
           <button
             className={`px-3 py-1 border rounded text-xs ${s.mockMode ? "bg-pad-active text-background border-pad-active" : "border-border"}`}
             onClick={() => s.setMockMode(!s.mockMode)}
           >
-            {s.mockMode ? "ON (no hardware)" : "OFF (use Web MIDI)"}
+            {s.mockMode ? "ON — QWERTY/UI only" : "OFF — Hardware Input"}
           </button>
+          <div className="text-[10px] text-muted-foreground">
+            Beeinflusst nur den Input. MIDI Output kannst du jederzeit unten wählen.
+          </div>
         </Field>
         <Field label="BPM">
           <input
