@@ -26,9 +26,12 @@ export type ControlId =
   | "dial.perform"
   | "dial.voicing"
   | "dial.key"
+  | "dial.loopLen"
   | "toggle.perform"
   | "toggle.voicing"
-  | "toggle.key";
+  | "toggle.key"
+  | "button.loop"
+  | "button.record";
 
 export type MidiMapping = {
   controlId: ControlId;
@@ -49,7 +52,10 @@ export const ALL_CONTROL_IDS: ControlId[] = [
   "dial.perform",
   "dial.voicing",
   "dial.key",
+  "dial.loopLen",
   "toggle.perform",
   "toggle.voicing",
   "toggle.key",
+  "button.loop",
+  "button.record",
 ];
