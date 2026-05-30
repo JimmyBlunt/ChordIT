@@ -23,11 +23,14 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
-  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
-  // hardware *input* requirement; users may still pick a real MIDI output.
-  useEffect(() => {
+  // Detect if we're running inside an iframe (Lovable preview blocks Web MIDI by
+  // permissions-policy unless allow="midi" is set on the iframe).
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
+  const initMidi = () => {
+    setMidiError(null);
     if (typeof navigator === "undefined" || !("requestMIDIAccess" in navigator)) {
-      setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge).");
+      setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge/Opera).");
       return;
     }
     initWebMidi()
@@ -39,13 +42,23 @@ export function SettingsScreen() {
         setHandle(h);
         setMidiError(
           h.inputs.length === 0 && h.outputs.length === 0
-            ? "Keine MIDI-Geräte gefunden. Schließe ein Gerät an und lade die Seite neu."
+            ? "Web MIDI verbunden, aber keine Geräte gefunden. Auf macOS: IAC Driver im Audio-MIDI-Setup aktivieren. Auf Windows: loopMIDI installieren."
             : null,
         );
       })
       .catch((err) => {
-        setMidiError(`MIDI-Zugriff verweigert: ${err?.message ?? err}`);
+        setMidiError(
+          inIframe
+            ? `MIDI im Preview-Iframe blockiert (${err?.message ?? err}). Öffne die App in einem neuen Tab.`
+            : `MIDI-Zugriff verweigert: ${err?.message ?? err}`,
+        );
       });
+  };
+
+  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
+  // hardware *input* requirement; users may still pick a real MIDI output.
+  useEffect(() => {
+    initMidi();
   }, []);
 
   useEffect(() => {
