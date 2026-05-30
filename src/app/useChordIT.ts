@@ -5,6 +5,8 @@ import { getChordDisplayString } from "../chord/chordNotation";
 import { applyVoicingMode, voiceDown, voiceUp } from "../voicing/voicingEngine";
 import { constrainToKey } from "../key/keyModeEngine";
 import { MockMidi } from "../midi/mockMidi";
+import { midiBridge } from "../midi/midiBridge";
+import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
 import { PATTERNS } from "../performance/patterns";
@@ -20,8 +22,18 @@ export function useChordIT() {
   const midiRef = useRef<MockMidi | null>(null);
   const clockRef = useRef<MockClock | null>(null);
   const activeRef = useRef<{ handle: PerformanceHandle; notes: number[] } | null>(null);
+  const fanoutRef = useRef<MidiOut | null>(null);
 
   if (!midiRef.current) midiRef.current = new MockMidi();
+  if (!fanoutRef.current) {
+    const mock = midiRef.current;
+    fanoutRef.current = {
+      send(event: NoteEvent) {
+        mock.send(event);
+        midiBridge.send(event);
+      },
+    };
+  }
   if (!clockRef.current) {
     clockRef.current = new MockClock(store.performanceParams.bpm);
     clockRef.current.start();
@@ -72,7 +84,7 @@ export function useChordIT() {
         chord: notes,
         velocity,
         channel: 0,
-        midiOut: midiRef.current!,
+        midiOut: fanoutRef.current!,
         clock: clockRef.current!,
         strumDeltaMs: performanceParams.strumDeltaMs,
         slopMaxMs: performanceParams.slopMaxMs,

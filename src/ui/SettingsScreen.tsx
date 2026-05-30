@@ -3,6 +3,7 @@ import { useChorditStore } from "@/app/store";
 import { MidiMapper } from "@/midi/midiMapper";
 import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { initWebMidi, type WebMidiHandle } from "@/midi/webMidi";
+import { midiBridge } from "@/midi/midiBridge";
 
 export function SettingsScreen() {
   const s = useChorditStore();
@@ -22,12 +23,9 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
+  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
+  // hardware *input* requirement; users may still pick a real MIDI output.
   useEffect(() => {
-    if (s.mockMode) {
-      setHandle(null);
-      setMidiError(null);
-      return;
-    }
     if (typeof navigator === "undefined" || !("requestMIDIAccess" in navigator)) {
       setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge).");
       return;
@@ -48,7 +46,7 @@ export function SettingsScreen() {
       .catch((err) => {
         setMidiError(`MIDI-Zugriff verweigert: ${err?.message ?? err}`);
       });
-  }, [s.mockMode]);
+  }, []);
 
   useEffect(() => {
     if (!handle) return;
@@ -90,13 +88,16 @@ export function SettingsScreen() {
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="MOCK MODE">
+        <Field label="MOCK MODE (INPUT)">
           <button
             className={`px-3 py-1 border rounded text-xs ${s.mockMode ? "bg-pad-active text-background border-pad-active" : "border-border"}`}
             onClick={() => s.setMockMode(!s.mockMode)}
           >
-            {s.mockMode ? "ON (no hardware)" : "OFF (use Web MIDI)"}
+            {s.mockMode ? "ON — QWERTY/UI only" : "OFF — Hardware Input"}
           </button>
+          <div className="text-[10px] text-muted-foreground">
+            Beeinflusst nur den Input. MIDI Output kannst du jederzeit unten wählen.
+          </div>
         </Field>
         <Field label="BPM">
           <input
@@ -147,7 +148,7 @@ export function SettingsScreen() {
             </select>
           ) : (
             <div className="text-xs text-muted-foreground">
-              {s.mockMode ? "Mock Mode aktiv — schalte Mock Mode aus." : midiError ?? "Initialisiere…"}
+              {midiError ?? "Initialisiere…"}
             </div>
           )}
         </Field>
@@ -157,25 +158,27 @@ export function SettingsScreen() {
               className="bg-card border border-border px-2 py-1 rounded"
               value={outputId}
               onChange={(e) => {
-                setOutputId(e.target.value);
-                handle.selectOutput(e.target.value || null);
-                s.setMidiStatus(s.midiInputConnected, !!e.target.value);
+                const id = e.target.value;
+                setOutputId(id);
+                handle.selectOutput(id || null);
+                midiBridge.setTarget(id ? handle.midiOut : null);
+                s.setMidiStatus(s.midiInputConnected, !!id);
               }}
             >
-              <option value="">— None —</option>
+              <option value="">— None (silent) —</option>
               {handle.outputs.map((o) => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}
             </select>
           ) : (
             <div className="text-xs text-muted-foreground">
-              {s.mockMode ? "Mock Mode aktiv — schalte Mock Mode aus." : midiError ?? "Initialisiere…"}
+              {midiError ?? "Initialisiere…"}
             </div>
           )}
         </Field>
       </section>
 
-      {midiError && !s.mockMode && (
+      {midiError && (
         <div className="text-xs text-destructive border border-destructive/40 rounded p-2">
           {midiError}
         </div>
