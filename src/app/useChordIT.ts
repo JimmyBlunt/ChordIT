@@ -103,7 +103,10 @@ export function useChordIT() {
         slopMaxMs: performanceParams.slopMaxMs,
         slopSeed: Date.now() & 0xffff,
         arpIntervalTicks: performanceParams.arpIntervalTicks,
-        pattern: PATTERNS[performanceParams.patternIndex] ?? PATTERNS[0],
+        pattern: (() => {
+          const all = [...PATTERNS, ...useChorditStore.getState().userPatterns];
+          return all[performanceParams.patternIndex] ?? PATTERNS[0];
+        })(),
         harpDeltaMs: performanceParams.harpDeltaMs,
         harpOctaves: performanceParams.harpOctaves,
       });
