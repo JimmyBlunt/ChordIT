@@ -3,6 +3,7 @@ import { useChorditStore } from "@/app/store";
 import { MidiMapper } from "@/midi/midiMapper";
 import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { initWebMidi, type WebMidiHandle } from "@/midi/webMidi";
+import { midiBridge } from "@/midi/midiBridge";
 
 export function SettingsScreen() {
   const s = useChorditStore();
