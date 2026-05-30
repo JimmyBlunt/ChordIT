@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   ChordExtension,
   ChordType,
@@ -49,6 +50,8 @@ export type State = {
   midiMappings: MidiMapping[];
   midiInputConnected: boolean;
   midiOutputConnected: boolean;
+  midiInputId: string;
+  midiOutputId: string;
 
   mockMode: boolean;
   learningControl: string | null;
@@ -69,11 +72,14 @@ export type Actions = {
   setSelectedKey: (k: KeyName) => void;
   setMidiMappings: (m: MidiMapping[]) => void;
   setMidiStatus: (input: boolean, output: boolean) => void;
+  setMidiDeviceIds: (input: string, output: string) => void;
   setMockMode: (m: boolean) => void;
   setLearningControl: (c: string | null) => void;
 };
 
-export const useChorditStore = create<State & Actions>((set) => ({
+export const useChorditStore = create<State & Actions>()(
+  persist(
+    (set) => ({
   selectedChordType: "Maj",
   activeExtensions: [],
   currentRootMidiNote: null,
