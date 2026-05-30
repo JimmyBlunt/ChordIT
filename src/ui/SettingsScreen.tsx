@@ -155,25 +155,27 @@ export function SettingsScreen() {
               className="bg-card border border-border px-2 py-1 rounded"
               value={outputId}
               onChange={(e) => {
-                setOutputId(e.target.value);
-                handle.selectOutput(e.target.value || null);
-                s.setMidiStatus(s.midiInputConnected, !!e.target.value);
+                const id = e.target.value;
+                setOutputId(id);
+                handle.selectOutput(id || null);
+                midiBridge.setTarget(id ? handle.midiOut : null);
+                s.setMidiStatus(s.midiInputConnected, !!id);
               }}
             >
-              <option value="">— None —</option>
+              <option value="">— None (silent) —</option>
               {handle.outputs.map((o) => (
                 <option key={o.id} value={o.id}>{o.name}</option>
               ))}
             </select>
           ) : (
             <div className="text-xs text-muted-foreground">
-              {s.mockMode ? "Mock Mode aktiv — schalte Mock Mode aus." : midiError ?? "Initialisiere…"}
+              {midiError ?? "Initialisiere…"}
             </div>
           )}
         </Field>
       </section>
 
-      {midiError && !s.mockMode && (
+      {midiError && (
         <div className="text-xs text-destructive border border-destructive/40 rounded p-2">
           {midiError}
         </div>
