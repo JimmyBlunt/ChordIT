@@ -17,8 +17,8 @@ export function SettingsScreen() {
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
   const [handle, setHandle] = useState<WebMidiHandle | null>(null);
-  const [inputId, setInputId] = useState<string>("");
-  const [outputId, setOutputId] = useState<string>("");
+  const [inputId, setInputId] = useState<string>(s.midiInputId);
+  const [outputId, setOutputId] = useState<string>(s.midiOutputId);
   const [midiError, setMidiError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -66,9 +66,25 @@ export function SettingsScreen() {
     initMidi();
   }, []);
 
+  // Auto-reconnect last-used devices once handle is ready, and feed midiActivity (IN).
   useEffect(() => {
     if (!handle) return;
+    if (s.midiInputId && handle.inputs.some((i) => i.id === s.midiInputId)) {
+      handle.selectInput(s.midiInputId);
+      setInputId(s.midiInputId);
+      s.setMidiStatus(true, s.midiOutputConnected);
+    }
+    if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
+      handle.selectOutput(s.midiOutputId);
+      midiBridge.setTarget(handle.midiOut);
+      setOutputId(s.midiOutputId);
+      setBridgeActive(true);
+      s.setMidiStatus(s.midiInputConnected, true);
+    }
     const unsub = handle.midiIn.onMessage((msg) => {
+      if (msg.type === "noteOn" && msg.velocity > 0) midiActivity.noteOn("in", msg.note);
+      else if (msg.type === "noteOff" || (msg.type === "noteOn" && msg.velocity === 0))
+        midiActivity.noteOff("in", msg.note);
       const { learned } = mapper.handle(msg);
       if (learned) {
         setMappings(mapper.list());
@@ -77,6 +93,7 @@ export function SettingsScreen() {
       }
     });
     return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);
 
   const startLearn = (id: ControlId) => {
