@@ -6,6 +6,7 @@ import { initWebMidi, type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiActivity } from "@/midi/midiActivity";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
+import { MappingDiagram } from "@/ui/MappingDiagram";
 
 export function SettingsScreen() {
   const s = useChorditStore();
@@ -122,6 +123,7 @@ export function SettingsScreen() {
         <nav className="flex gap-4 text-xs text-muted-foreground">
           <a href="/" className="hover:text-foreground">MAIN</a>
           <a href="/settings" className="text-foreground">SETTINGS</a>
+          <a href="/tests" className="hover:text-foreground">TESTS</a>
         </nav>
       </header>
 
@@ -302,6 +304,14 @@ export function SettingsScreen() {
           {midiError}
         </div>
       )}
+
+      <MappingDiagram
+        mappings={mappings}
+        learning={learning}
+        onClick={(id) => {
+          if (handle) startLearn(id as ControlId);
+        }}
+      />
 
       <section className="border border-border rounded-md">
         <div className="flex items-center justify-between p-3 border-b border-border">

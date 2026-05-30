@@ -8,6 +8,7 @@ import type {
 } from "../chord/chordTypes";
 import type { KeyName } from "../key/scales";
 import type { MidiMapping } from "../midi/midiTypes";
+import type { Pattern } from "../performance/patterns";
 
 export type PerformanceParams = {
   strumDeltaMs: number;
@@ -55,6 +56,16 @@ export type State = {
 
   mockMode: boolean;
   learningControl: string | null;
+
+  /** Loop / Record */
+  loopEnabled: boolean;
+  loopRecording: boolean;
+  loopPlaying: boolean;
+  loopLength: number; // 4..16 beats
+  loopLengthPending: number;
+
+  /** User-saved rhythm patterns (additive to built-in PATTERNS) */
+  userPatterns: Pattern[];
 };
 
 export type Actions = {
@@ -75,34 +86,41 @@ export type Actions = {
   setMidiDeviceIds: (input: string, output: string) => void;
   setMockMode: (m: boolean) => void;
   setLearningControl: (c: string | null) => void;
+  setLoopEnabled: (b: boolean) => void;
+  setLoopRecording: (b: boolean) => void;
+  setLoopPlaying: (b: boolean) => void;
+  setLoopLength: (n: number) => void;
+  setLoopLengthPending: (n: number) => void;
+  addUserPattern: (p: Pattern) => void;
+  removeUserPattern: (id: string) => void;
 };
 
 export const useChorditStore = create<State & Actions>()(
   persist(
     (set) => ({
-  selectedChordType: "Maj",
-  activeExtensions: [],
-  currentRootMidiNote: null,
-  currentChordNotes: [],
-  currentDisplayString: "—",
+      selectedChordType: "Maj",
+      activeExtensions: [],
+      currentRootMidiNote: null,
+      currentChordNotes: [],
+      currentDisplayString: "—",
 
-  performanceMode: "Off",
-  performanceParams: {
-    strumDeltaMs: 60,
-    slopMaxMs: 25,
-    arpIntervalTicks: 12,
-    patternIndex: 0,
-    harpDeltaMs: 35,
-    harpOctaves: 3,
-    bpm: 120,
-  },
+      performanceMode: "Off",
+      performanceParams: {
+        strumDeltaMs: 60,
+        slopMaxMs: 25,
+        arpIntervalTicks: 12,
+        patternIndex: 0,
+        harpDeltaMs: 35,
+        harpOctaves: 3,
+        bpm: 120,
+      },
 
-  voicingMode: "Split",
-  splitKey: 60,
-  octaveBase: 60,
+      voicingMode: "Split",
+      splitKey: 60,
+      octaveBase: 60,
 
-  keyModeEnabled: false,
-  selectedKey: "C",
+      keyModeEnabled: false,
+      selectedKey: "C",
 
       midiMappings: [],
       midiInputConnected: false,
@@ -112,6 +130,14 @@ export const useChorditStore = create<State & Actions>()(
 
       mockMode: false,
       learningControl: null,
+
+      loopEnabled: false,
+      loopRecording: false,
+      loopPlaying: false,
+      loopLength: 8,
+      loopLengthPending: 8,
+
+      userPatterns: [],
 
       setChordType: (t) => set({ selectedChordType: t }),
       toggleExtension: (e) =>
@@ -139,6 +165,15 @@ export const useChorditStore = create<State & Actions>()(
         set({ midiInputId: input, midiOutputId: output }),
       setMockMode: (m) => set({ mockMode: m }),
       setLearningControl: (c) => set({ learningControl: c }),
+      setLoopEnabled: (b) => set({ loopEnabled: b }),
+      setLoopRecording: (b) => set({ loopRecording: b }),
+      setLoopPlaying: (b) => set({ loopPlaying: b }),
+      setLoopLength: (n) => set({ loopLength: n, loopLengthPending: n }),
+      setLoopLengthPending: (n) => set({ loopLengthPending: n }),
+      addUserPattern: (p) =>
+        set((s) => ({ userPatterns: [...s.userPatterns.filter((x) => x.id !== p.id), p] })),
+      removeUserPattern: (id) =>
+        set((s) => ({ userPatterns: s.userPatterns.filter((p) => p.id !== id) })),
     }),
     {
       name: "chordit.store",
@@ -157,6 +192,8 @@ export const useChorditStore = create<State & Actions>()(
         midiInputId: s.midiInputId,
         midiOutputId: s.midiOutputId,
         mockMode: s.mockMode,
+        loopLength: s.loopLength,
+        userPatterns: s.userPatterns,
       }),
     },
   ),

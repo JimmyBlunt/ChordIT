@@ -76,6 +76,19 @@ export function useChordIT() {
       useChorditStore.getState().setRootNote(rootMidi);
       useChorditStore.getState().setChord(notes, display);
 
+      // Capture into loop recorder if recording is active.
+      const { loopRecording } = useChorditStore.getState();
+      if (loopRecording) {
+        import("../app/loopRecorder").then(({ loopRecorder }) => {
+          loopRecorder.captureChord({
+            rootMidi,
+            chordType: selectedChordType,
+            extensions: activeExtensions,
+            velocity,
+          });
+        });
+      }
+
       // Stop previous performance.
       if (activeRef.current) activeRef.current.handle.stop();
 
@@ -90,7 +103,10 @@ export function useChordIT() {
         slopMaxMs: performanceParams.slopMaxMs,
         slopSeed: Date.now() & 0xffff,
         arpIntervalTicks: performanceParams.arpIntervalTicks,
-        pattern: PATTERNS[performanceParams.patternIndex] ?? PATTERNS[0],
+        pattern: (() => {
+          const all = [...PATTERNS, ...useChorditStore.getState().userPatterns];
+          return all[performanceParams.patternIndex] ?? PATTERNS[0];
+        })(),
         harpDeltaMs: performanceParams.harpDeltaMs,
         harpOctaves: performanceParams.harpOctaves,
       });

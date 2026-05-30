@@ -4,6 +4,8 @@ import { useChorditStore, PERFORMANCE_MODES } from "@/app/store";
 import { ALL_KEYS } from "@/key/scales";
 import { PATTERNS } from "@/performance/patterns";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
+import { MockPanel } from "@/ui/MockPanel";
+import { MiniSequencer } from "@/ui/MiniSequencer";
 import type { ChordExtension, ChordType } from "@/chord/chordTypes";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
@@ -53,6 +55,7 @@ export function MainScreen() {
         <nav className="flex gap-4 text-xs text-muted-foreground">
           <a href="/" className="text-foreground">MAIN</a>
           <a href="/settings" className="hover:text-foreground">SETTINGS</a>
+          <a href="/tests" className="hover:text-foreground">TESTS</a>
         </nav>
       </header>
 
@@ -142,6 +145,10 @@ export function MainScreen() {
       </div>
 
       <PianoKeyboard />
+
+      <MiniSequencer />
+
+      {s.mockMode && <MockPanel onPlayRoot={playRoot} onReleaseRoot={releaseRoot} />}
 
       {/* Footer */}
       <footer className="text-xs text-muted-foreground border-t border-border pt-3 flex justify-between">
