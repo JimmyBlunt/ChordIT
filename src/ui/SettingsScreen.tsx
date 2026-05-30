@@ -23,11 +23,14 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
-  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
-  // hardware *input* requirement; users may still pick a real MIDI output.
-  useEffect(() => {
+  // Detect if we're running inside an iframe (Lovable preview blocks Web MIDI by
+  // permissions-policy unless allow="midi" is set on the iframe).
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
+  const initMidi = () => {
+    setMidiError(null);
     if (typeof navigator === "undefined" || !("requestMIDIAccess" in navigator)) {
-      setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge).");
+      setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge/Opera).");
       return;
     }
     initWebMidi()
@@ -39,13 +42,23 @@ export function SettingsScreen() {
         setHandle(h);
         setMidiError(
           h.inputs.length === 0 && h.outputs.length === 0
-            ? "Keine MIDI-Geräte gefunden. Schließe ein Gerät an und lade die Seite neu."
+            ? "Web MIDI verbunden, aber keine Geräte gefunden. Auf macOS: IAC Driver im Audio-MIDI-Setup aktivieren. Auf Windows: loopMIDI installieren."
             : null,
         );
       })
       .catch((err) => {
-        setMidiError(`MIDI-Zugriff verweigert: ${err?.message ?? err}`);
+        setMidiError(
+          inIframe
+            ? `MIDI im Preview-Iframe blockiert (${err?.message ?? err}). Öffne die App in einem neuen Tab.`
+            : `MIDI-Zugriff verweigert: ${err?.message ?? err}`,
+        );
       });
+  };
+
+  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
+  // hardware *input* requirement; users may still pick a real MIDI output.
+  useEffect(() => {
+    initMidi();
   }, []);
 
   useEffect(() => {
@@ -77,6 +90,9 @@ export function SettingsScreen() {
     mapper.save();
   };
 
+
+
+
   return (
     <div className="min-h-screen bg-background text-foreground font-mono p-6 flex flex-col gap-6">
       <header className="flex items-center justify-between border-b border-border pb-3">
@@ -86,6 +102,40 @@ export function SettingsScreen() {
           <a href="/settings" className="text-foreground">SETTINGS</a>
         </nav>
       </header>
+
+      {/* Iframe / Web MIDI Warnung */}
+      {!handle && (
+        <div className="border border-amber-500/40 bg-amber-500/10 rounded-md p-3 text-xs flex flex-col gap-2">
+          <div className="font-bold tracking-widest text-amber-400">⚠ WEB MIDI NICHT VERFÜGBAR</div>
+          <div className="text-muted-foreground">
+            {midiError ?? "Initialisiere Web MIDI…"}
+          </div>
+          {inIframe && (
+            <div className="text-muted-foreground">
+              Du bist im Lovable-Preview-Iframe. Web MIDI ist hier per Permissions-Policy blockiert.
+              Öffne die App in einem eigenen Tab, dann erscheinen deine MIDI-Outs (IAC, loopMIDI, USB-Controller…).
+            </div>
+          )}
+          <div className="flex gap-2 flex-wrap">
+            {inIframe && (
+              <button
+                className="px-3 py-1 border border-amber-400/60 rounded hover:bg-amber-500/20"
+                onClick={() => window.open(window.location.href, "_blank", "noopener")}
+              >
+                IN NEUEM TAB ÖFFNEN
+              </button>
+            )}
+            <button
+              className="px-3 py-1 border border-border rounded hover:bg-accent"
+              onClick={initMidi}
+            >
+              ERNEUT VERSUCHEN
+            </button>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Statusanzeige */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
