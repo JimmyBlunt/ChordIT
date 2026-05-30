@@ -4,6 +4,8 @@ import { MidiMapper } from "@/midi/midiMapper";
 import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { initWebMidi, type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
+import { midiActivity } from "@/midi/midiActivity";
+import { PianoKeyboard } from "@/ui/PianoKeyboard";
 
 export function SettingsScreen() {
   const s = useChorditStore();
