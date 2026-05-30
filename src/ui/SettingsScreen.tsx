@@ -87,6 +87,29 @@ export function SettingsScreen() {
         </nav>
       </header>
 
+      {/* Statusanzeige */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <StatusCard
+          label="WEB MIDI API"
+          status={handle ? "online" : "offline"}
+          text={handle ? "Bereit" : (midiError ?? "Nicht verfügbar")}
+        />
+        <StatusCard
+          label="OUTPUT GERÄT"
+          status={outputId && handle ? "online" : "offline"}
+          text={
+            outputId && handle
+              ? (handle.outputs.find((o) => o.id === outputId)?.name ?? outputId)
+              : "Kein Gerät gewählt"
+          }
+        />
+        <StatusCard
+          label="BRIDGE"
+          status={midiBridge.hasTarget() ? "online" : "offline"}
+          text={midiBridge.hasTarget() ? "Aktiv" : "Inaktiv"}
+        />
+      </section>
+
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="MOCK MODE (INPUT)">
           <button
