@@ -20,20 +20,21 @@ export function MockPanel({
   onReleaseRoot: (note: number) => void;
 }) {
   const s = useChorditStore();
+  const { loopEnabled, loopLength, loopLengthPending, setLoopLength } = s;
 
   // 2-second auto-commit for loop length while loop mode is on
   const pendingRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!s.loopEnabled) return;
-    if (s.loopLengthPending === s.loopLength) return;
+    if (!loopEnabled) return;
+    if (loopLengthPending === loopLength) return;
     if (pendingRef.current) window.clearTimeout(pendingRef.current);
     pendingRef.current = window.setTimeout(() => {
-      s.setLoopLength(s.loopLengthPending);
+      setLoopLength(loopLengthPending);
     }, 2000);
     return () => {
       if (pendingRef.current) window.clearTimeout(pendingRef.current);
     };
-  }, [s.loopLengthPending, s.loopEnabled, s.loopLength, s]);
+  }, [loopLengthPending, loopEnabled, loopLength, setLoopLength]);
 
   const toggleRecord = () => {
     if (!s.loopRecording) {
