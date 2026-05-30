@@ -22,8 +22,18 @@ export function useChordIT() {
   const midiRef = useRef<MockMidi | null>(null);
   const clockRef = useRef<MockClock | null>(null);
   const activeRef = useRef<{ handle: PerformanceHandle; notes: number[] } | null>(null);
+  const fanoutRef = useRef<MidiOut | null>(null);
 
   if (!midiRef.current) midiRef.current = new MockMidi();
+  if (!fanoutRef.current) {
+    const mock = midiRef.current;
+    fanoutRef.current = {
+      send(event: NoteEvent) {
+        mock.send(event);
+        midiBridge.send(event);
+      },
+    };
+  }
   if (!clockRef.current) {
     clockRef.current = new MockClock(store.performanceParams.bpm);
     clockRef.current.start();
