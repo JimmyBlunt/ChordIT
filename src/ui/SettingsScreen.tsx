@@ -129,43 +129,57 @@ export function SettingsScreen() {
           />
         </Field>
 
-        {handle && (
-          <>
-            <Field label="MIDI INPUT">
-              <select
-                className="bg-card border border-border px-2 py-1 rounded"
-                value={inputId}
-                onChange={(e) => {
-                  setInputId(e.target.value);
-                  handle.selectInput(e.target.value || null);
-                  s.setMidiStatus(!!e.target.value, s.midiOutputConnected);
-                }}
-              >
-                <option value="">— None —</option>
-                {handle.inputs.map((i) => (
-                  <option key={i.id} value={i.id}>{i.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="MIDI OUTPUT">
-              <select
-                className="bg-card border border-border px-2 py-1 rounded"
-                value={outputId}
-                onChange={(e) => {
-                  setOutputId(e.target.value);
-                  handle.selectOutput(e.target.value || null);
-                  s.setMidiStatus(s.midiInputConnected, !!e.target.value);
-                }}
-              >
-                <option value="">— None —</option>
-                {handle.outputs.map((o) => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
-                ))}
-              </select>
-            </Field>
-          </>
-        )}
+        <Field label="MIDI INPUT">
+          {handle ? (
+            <select
+              className="bg-card border border-border px-2 py-1 rounded"
+              value={inputId}
+              onChange={(e) => {
+                setInputId(e.target.value);
+                handle.selectInput(e.target.value || null);
+                s.setMidiStatus(!!e.target.value, s.midiOutputConnected);
+              }}
+            >
+              <option value="">— None —</option>
+              {handle.inputs.map((i) => (
+                <option key={i.id} value={i.id}>{i.name}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              {s.mockMode ? "Mock Mode aktiv — schalte Mock Mode aus." : midiError ?? "Initialisiere…"}
+            </div>
+          )}
+        </Field>
+        <Field label="MIDI OUTPUT">
+          {handle ? (
+            <select
+              className="bg-card border border-border px-2 py-1 rounded"
+              value={outputId}
+              onChange={(e) => {
+                setOutputId(e.target.value);
+                handle.selectOutput(e.target.value || null);
+                s.setMidiStatus(s.midiInputConnected, !!e.target.value);
+              }}
+            >
+              <option value="">— None —</option>
+              {handle.outputs.map((o) => (
+                <option key={o.id} value={o.id}>{o.name}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              {s.mockMode ? "Mock Mode aktiv — schalte Mock Mode aus." : midiError ?? "Initialisiere…"}
+            </div>
+          )}
+        </Field>
       </section>
+
+      {midiError && !s.mockMode && (
+        <div className="text-xs text-destructive border border-destructive/40 rounded p-2">
+          {midiError}
+        </div>
+      )}
 
       <section className="border border-border rounded-md">
         <div className="flex items-center justify-between p-3 border-b border-border">
