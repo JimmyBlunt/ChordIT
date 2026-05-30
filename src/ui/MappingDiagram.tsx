@@ -1,9 +1,9 @@
-import type { MidiMapping } from "@/midi/midiTypes";
+import type { ControlId, MidiMapping } from "@/midi/midiTypes";
 
 type Pos = { x: number; y: number; r?: number; w?: number; h?: number; label: string; kind: "btn" | "rot" };
 
 // Layout (viewBox 0..400 x 0..220) — buttons as circles, rotaries as larger circles.
-const LAYOUT: Record<string, Pos> = {
+const LAYOUT: Record<ControlId, Pos> = {
   "chord.Dim": { x: 50, y: 50, r: 16, label: "DIM", kind: "btn" },
   "chord.Min": { x: 95, y: 50, r: 16, label: "MIN", kind: "btn" },
   "chord.Maj": { x: 140, y: 50, r: 16, label: "MAJ", kind: "btn" },
