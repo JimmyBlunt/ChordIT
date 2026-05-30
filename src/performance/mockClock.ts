@@ -46,6 +46,9 @@ export class MockClock implements Clock {
     const dt = msPerTick(this.bpm, this.ppqn);
     const ticks = Math.round(ms / dt);
     this.advanceTicks(ticks);
+    // Keep wall-clock time precise even when tick count rounds.
+    const drift = ms - ticks * dt;
+    this.timeMs += drift;
   }
 
   get currentTick() {

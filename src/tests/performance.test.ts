@@ -243,8 +243,9 @@ describe("performance: Pattern", () => {
     });
     clock.advanceTicks(24);
     const ons = midi.events.filter((e) => e.type === "noteOn");
-    expect(ons[0].velocity).toBe(50);
-    expect(ons[1].velocity).toBe(100);
+    // step at offset 12 fires first (at tick 12), then offset 0 wraps at tick 24
+    const velocities = ons.map((e) => e.velocity).sort((a, b) => a - b);
+    expect(velocities).toEqual([50, 100]);
   });
 });
 

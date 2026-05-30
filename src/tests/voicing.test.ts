@@ -24,7 +24,8 @@ describe("voicing engine", () => {
   });
 
   it("octave mode folds notes into [base, base+11]", () => {
-    expect(applyOctave([48, 60, 76], 60)).toEqual([60, 64, 72]);
+    // 48→60, 60→60, 76→64; sorted ascending (dupes preserved)
+    expect(applyOctave([48, 60, 76], 60)).toEqual([60, 60, 64]);
     const out = applyOctave([0, 60, 100, 127], 60);
     for (const n of out) {
       expect(n).toBeGreaterThanOrEqual(60);
