@@ -137,18 +137,13 @@ function startArp(
   if (notes.length === 0) return () => {};
   let idx = 0;
   let lastNote: number | null = null;
-  let lastTick = ctx.clock.currentTick;
   const unsub = ctx.clock.onTick((t) => {
-    if (t.tick - lastTick < ctx.arpIntervalTicks - 1) return;
-    if ((t.tick - lastTick) % ctx.arpIntervalTicks !== 0 && lastNote !== null) return;
-    // step on every Nth tick from start
-    if ((t.tick % ctx.arpIntervalTicks) !== 0) return;
+    if (t.tick % ctx.arpIntervalTicks !== 0) return;
     if (lastNote !== null) noteOff(lastNote);
     const n = notes[idx % notes.length];
     noteOn(n, ctx.velocity);
     lastNote = n;
     idx += 1;
-    lastTick = t.tick;
   });
   return () => {
     unsub();
