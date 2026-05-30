@@ -231,9 +231,11 @@ export function SettingsScreen() {
               className="bg-card border border-border px-2 py-1 rounded"
               value={inputId}
               onChange={(e) => {
-                setInputId(e.target.value);
-                handle.selectInput(e.target.value || null);
-                s.setMidiStatus(!!e.target.value, s.midiOutputConnected);
+                const id = e.target.value;
+                setInputId(id);
+                handle.selectInput(id || null);
+                s.setMidiStatus(!!id, s.midiOutputConnected);
+                s.setMidiDeviceIds(id, s.midiOutputId);
               }}
             >
               <option value="">— None —</option>
@@ -260,6 +262,7 @@ export function SettingsScreen() {
                   midiBridge.setTarget(id ? handle.midiOut : null);
                   setBridgeActive(!!id);
                   s.setMidiStatus(s.midiInputConnected, !!id);
+                  s.setMidiDeviceIds(s.midiInputId, id);
                 }}
               >
                 <option value="">— None (silent) —</option>
