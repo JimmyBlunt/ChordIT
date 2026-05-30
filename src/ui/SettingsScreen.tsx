@@ -89,37 +89,8 @@ export function SettingsScreen() {
     setMappings(mapper.list());
     mapper.save();
   };
-      {/* Iframe / Web MIDI Warnung */}
-      {!handle && (
-        <div className="border border-amber-500/40 bg-amber-500/10 rounded-md p-3 text-xs flex flex-col gap-2">
-          <div className="font-bold tracking-widest text-amber-400">⚠ WEB MIDI NICHT VERFÜGBAR</div>
-          <div className="text-muted-foreground">
-            {midiError ?? "Initialisiere Web MIDI…"}
-          </div>
-          {inIframe && (
-            <div className="text-muted-foreground">
-              Du bist im Lovable-Preview-Iframe. Web MIDI ist hier per Permissions-Policy blockiert.
-              Öffne die App in einem eigenen Tab, dann erscheinen deine MIDI-Outs (IAC, loopMIDI, USB-Controller…).
-            </div>
-          )}
-          <div className="flex gap-2 flex-wrap">
-            {inIframe && (
-              <button
-                className="px-3 py-1 border border-amber-400/60 rounded hover:bg-amber-500/20"
-                onClick={() => window.open(window.location.href, "_blank", "noopener")}
-              >
-                IN NEUEM TAB ÖFFNEN
-              </button>
-            )}
-            <button
-              className="px-3 py-1 border border-border rounded hover:bg-accent"
-              onClick={initMidi}
-            >
-              ERNEUT VERSUCHEN
-            </button>
-          </div>
-        </div>
-      )}
+
+
 
 
   return (
