@@ -33,7 +33,7 @@ export function MiniSequencer() {
   const [grid, setGrid] = useState<boolean[][]>(initialGrid);
 
   // Reset grid when switching pattern.
-  useMemo(() => setGrid(initialGrid), [initialGrid]);
+  useEffect(() => setGrid(initialGrid), [initialGrid]);
 
   const toggle = (r: number, c: number) => {
     if (!edit) return;
