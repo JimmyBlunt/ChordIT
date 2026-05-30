@@ -3,6 +3,7 @@ import { useChordIT } from "@/app/useChordIT";
 import { useChorditStore, PERFORMANCE_MODES } from "@/app/store";
 import { ALL_KEYS } from "@/key/scales";
 import { PATTERNS } from "@/performance/patterns";
+import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import type { ChordExtension, ChordType } from "@/chord/chordTypes";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
@@ -139,6 +140,8 @@ export function MainScreen() {
           )}
         </section>
       </div>
+
+      <PianoKeyboard />
 
       {/* Footer */}
       <footer className="text-xs text-muted-foreground border-t border-border pt-3 flex justify-between">

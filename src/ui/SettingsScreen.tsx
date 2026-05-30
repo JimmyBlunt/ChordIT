@@ -4,6 +4,8 @@ import { MidiMapper } from "@/midi/midiMapper";
 import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { initWebMidi, type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
+import { midiActivity } from "@/midi/midiActivity";
+import { PianoKeyboard } from "@/ui/PianoKeyboard";
 
 export function SettingsScreen() {
   const s = useChorditStore();
@@ -15,8 +17,8 @@ export function SettingsScreen() {
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
   const [handle, setHandle] = useState<WebMidiHandle | null>(null);
-  const [inputId, setInputId] = useState<string>("");
-  const [outputId, setOutputId] = useState<string>("");
+  const [inputId, setInputId] = useState<string>(s.midiInputId);
+  const [outputId, setOutputId] = useState<string>(s.midiOutputId);
   const [midiError, setMidiError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,9 +66,25 @@ export function SettingsScreen() {
     initMidi();
   }, []);
 
+  // Auto-reconnect last-used devices once handle is ready, and feed midiActivity (IN).
   useEffect(() => {
     if (!handle) return;
+    if (s.midiInputId && handle.inputs.some((i) => i.id === s.midiInputId)) {
+      handle.selectInput(s.midiInputId);
+      setInputId(s.midiInputId);
+      s.setMidiStatus(true, s.midiOutputConnected);
+    }
+    if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
+      handle.selectOutput(s.midiOutputId);
+      midiBridge.setTarget(handle.midiOut);
+      setOutputId(s.midiOutputId);
+      setBridgeActive(true);
+      s.setMidiStatus(s.midiInputConnected, true);
+    }
     const unsub = handle.midiIn.onMessage((msg) => {
+      if (msg.type === "noteOn" && msg.velocity > 0) midiActivity.noteOn("in", msg.note);
+      else if (msg.type === "noteOff" || (msg.type === "noteOn" && msg.velocity === 0))
+        midiActivity.noteOff("in", msg.note);
       const { learned } = mapper.handle(msg);
       if (learned) {
         setMappings(mapper.list());
@@ -75,6 +93,7 @@ export function SettingsScreen() {
       }
     });
     return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);
 
   const startLearn = (id: ControlId) => {
@@ -163,6 +182,10 @@ export function SettingsScreen() {
         />
       </section>
 
+      <PianoKeyboard />
+
+
+
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="MOCK MODE (INPUT)">
           <button
@@ -212,9 +235,11 @@ export function SettingsScreen() {
               className="bg-card border border-border px-2 py-1 rounded"
               value={inputId}
               onChange={(e) => {
-                setInputId(e.target.value);
-                handle.selectInput(e.target.value || null);
-                s.setMidiStatus(!!e.target.value, s.midiOutputConnected);
+                const id = e.target.value;
+                setInputId(id);
+                handle.selectInput(id || null);
+                s.setMidiStatus(!!id, s.midiOutputConnected);
+                s.setMidiDeviceIds(id, s.midiOutputId);
               }}
             >
               <option value="">— None —</option>
@@ -241,6 +266,7 @@ export function SettingsScreen() {
                   midiBridge.setTarget(id ? handle.midiOut : null);
                   setBridgeActive(!!id);
                   s.setMidiStatus(s.midiInputConnected, !!id);
+                  s.setMidiDeviceIds(s.midiInputId, id);
                 }}
               >
                 <option value="">— None (silent) —</option>
