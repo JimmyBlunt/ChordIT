@@ -102,7 +102,7 @@ export const useChorditStore = create<State & Actions>((set) => ({
   midiInputConnected: false,
   midiOutputConnected: false,
 
-  mockMode: true,
+  mockMode: false,
   learningControl: null,
 
   setChordType: (t) => set({ selectedChordType: t }),
