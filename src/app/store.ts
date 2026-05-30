@@ -104,35 +104,60 @@ export const useChorditStore = create<State & Actions>()(
   keyModeEnabled: false,
   selectedKey: "C",
 
-  midiMappings: [],
-  midiInputConnected: false,
-  midiOutputConnected: false,
+      midiMappings: [],
+      midiInputConnected: false,
+      midiOutputConnected: false,
+      midiInputId: "",
+      midiOutputId: "",
 
-  mockMode: false,
-  learningControl: null,
+      mockMode: false,
+      learningControl: null,
 
-  setChordType: (t) => set({ selectedChordType: t }),
-  toggleExtension: (e) =>
-    set((s) => ({
-      activeExtensions: s.activeExtensions.includes(e)
-        ? s.activeExtensions.filter((x) => x !== e)
-        : [...s.activeExtensions, e],
-    })),
-  setExtensions: (e) => set({ activeExtensions: e }),
-  setRootNote: (n) => set({ currentRootMidiNote: n }),
-  setChord: (notes, display) =>
-    set({ currentChordNotes: notes, currentDisplayString: display }),
-  setPerformanceMode: (m) => set({ performanceMode: m }),
-  setPerformanceParams: (p) =>
-    set((s) => ({ performanceParams: { ...s.performanceParams, ...p } })),
-  setVoicingMode: (m) => set({ voicingMode: m }),
-  setSplitKey: (n) => set({ splitKey: n }),
-  setOctaveBase: (n) => set({ octaveBase: n }),
-  toggleKeyMode: () => set((s) => ({ keyModeEnabled: !s.keyModeEnabled })),
-  setSelectedKey: (k) => set({ selectedKey: k }),
-  setMidiMappings: (m) => set({ midiMappings: m }),
-  setMidiStatus: (input, output) =>
-    set({ midiInputConnected: input, midiOutputConnected: output }),
-  setMockMode: (m) => set({ mockMode: m }),
-  setLearningControl: (c) => set({ learningControl: c }),
-}));
+      setChordType: (t) => set({ selectedChordType: t }),
+      toggleExtension: (e) =>
+        set((s) => ({
+          activeExtensions: s.activeExtensions.includes(e)
+            ? s.activeExtensions.filter((x) => x !== e)
+            : [...s.activeExtensions, e],
+        })),
+      setExtensions: (e) => set({ activeExtensions: e }),
+      setRootNote: (n) => set({ currentRootMidiNote: n }),
+      setChord: (notes, display) =>
+        set({ currentChordNotes: notes, currentDisplayString: display }),
+      setPerformanceMode: (m) => set({ performanceMode: m }),
+      setPerformanceParams: (p) =>
+        set((s) => ({ performanceParams: { ...s.performanceParams, ...p } })),
+      setVoicingMode: (m) => set({ voicingMode: m }),
+      setSplitKey: (n) => set({ splitKey: n }),
+      setOctaveBase: (n) => set({ octaveBase: n }),
+      toggleKeyMode: () => set((s) => ({ keyModeEnabled: !s.keyModeEnabled })),
+      setSelectedKey: (k) => set({ selectedKey: k }),
+      setMidiMappings: (m) => set({ midiMappings: m }),
+      setMidiStatus: (input, output) =>
+        set({ midiInputConnected: input, midiOutputConnected: output }),
+      setMidiDeviceIds: (input, output) =>
+        set({ midiInputId: input, midiOutputId: output }),
+      setMockMode: (m) => set({ mockMode: m }),
+      setLearningControl: (c) => set({ learningControl: c }),
+    }),
+    {
+      name: "chordit.store",
+      storage: createJSONStorage(() => localStorage),
+      partialize: (s) => ({
+        selectedChordType: s.selectedChordType,
+        activeExtensions: s.activeExtensions,
+        performanceMode: s.performanceMode,
+        performanceParams: s.performanceParams,
+        voicingMode: s.voicingMode,
+        splitKey: s.splitKey,
+        octaveBase: s.octaveBase,
+        keyModeEnabled: s.keyModeEnabled,
+        selectedKey: s.selectedKey,
+        midiMappings: s.midiMappings,
+        midiInputId: s.midiInputId,
+        midiOutputId: s.midiOutputId,
+        mockMode: s.mockMode,
+      }),
+    },
+  ),
+);
