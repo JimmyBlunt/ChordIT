@@ -146,6 +146,10 @@ export function MainScreen() {
 
       <PianoKeyboard />
 
+      <MiniSequencer />
+
+      {s.mockMode && <MockPanel onPlayRoot={playRoot} onReleaseRoot={releaseRoot} />}
+
       {/* Footer */}
       <footer className="text-xs text-muted-foreground border-t border-border pt-3 flex justify-between">
         <div>NOTES: [{s.currentChordNotes.join(", ")}]</div>
