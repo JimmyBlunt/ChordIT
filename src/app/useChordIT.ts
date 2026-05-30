@@ -84,7 +84,7 @@ export function useChordIT() {
         chord: notes,
         velocity,
         channel: 0,
-        midiOut: midiRef.current!,
+        midiOut: fanoutRef.current!,
         clock: clockRef.current!,
         strumDeltaMs: performanceParams.strumDeltaMs,
         slopMaxMs: performanceParams.slopMaxMs,
