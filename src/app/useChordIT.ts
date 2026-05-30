@@ -76,6 +76,19 @@ export function useChordIT() {
       useChorditStore.getState().setRootNote(rootMidi);
       useChorditStore.getState().setChord(notes, display);
 
+      // Capture into loop recorder if recording is active.
+      const { loopRecording } = useChorditStore.getState();
+      if (loopRecording) {
+        import("../app/loopRecorder").then(({ loopRecorder }) => {
+          loopRecorder.captureChord({
+            rootMidi,
+            chordType: selectedChordType,
+            extensions: activeExtensions,
+            velocity,
+          });
+        });
+      }
+
       // Stop previous performance.
       if (activeRef.current) activeRef.current.handle.stop();
 
