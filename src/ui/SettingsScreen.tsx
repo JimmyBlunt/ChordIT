@@ -123,6 +123,7 @@ export function SettingsScreen() {
         <nav className="flex gap-4 text-xs text-muted-foreground">
           <a href="/" className="hover:text-foreground">MAIN</a>
           <a href="/settings" className="text-foreground">SETTINGS</a>
+          <a href="/tests" className="hover:text-foreground">TESTS</a>
         </nav>
       </header>
 
