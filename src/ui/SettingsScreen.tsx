@@ -23,9 +23,12 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
-  // Detect if we're running inside an iframe (Lovable preview blocks Web MIDI by
-  // permissions-policy unless allow="midi" is set on the iframe).
-  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+  // Detect iframe AFTER mount to avoid SSR/CSR hydration mismatch.
+  const [inIframe, setInIframe] = useState(false);
+  const [bridgeActive, setBridgeActive] = useState(midiBridge.hasTarget());
+  useEffect(() => {
+    setInIframe(window.self !== window.top);
+  }, []);
 
   const initMidi = () => {
     setMidiError(null);
