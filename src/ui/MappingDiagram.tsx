@@ -53,7 +53,7 @@ export function MappingDiagram({
           ROTARIES · TOGGLES · LOOP
         </text>
 
-        {Object.entries(LAYOUT).map(([id, p]) => {
+        {(Object.entries(LAYOUT) as [ControlId, Pos][]).map(([id, p]) => {
           const m = byId.get(id);
           const isLearning = learning === id;
           const fill = isLearning ? "fill-pad-active/30" : m ? "fill-emerald-500/15" : "fill-card";
