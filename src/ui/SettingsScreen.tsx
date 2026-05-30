@@ -158,8 +158,8 @@ export function SettingsScreen() {
         />
         <StatusCard
           label="BRIDGE"
-          status={midiBridge.hasTarget() ? "online" : "offline"}
-          text={midiBridge.hasTarget() ? "Aktiv" : "Inaktiv"}
+          status={bridgeActive ? "online" : "offline"}
+          text={bridgeActive ? "Aktiv" : "Inaktiv"}
         />
       </section>
 
