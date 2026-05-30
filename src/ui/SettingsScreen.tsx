@@ -23,9 +23,12 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
-  // Detect if we're running inside an iframe (Lovable preview blocks Web MIDI by
-  // permissions-policy unless allow="midi" is set on the iframe).
-  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+  // Detect iframe AFTER mount to avoid SSR/CSR hydration mismatch.
+  const [inIframe, setInIframe] = useState(false);
+  const [bridgeActive, setBridgeActive] = useState(midiBridge.hasTarget());
+  useEffect(() => {
+    setInIframe(window.self !== window.top);
+  }, []);
 
   const initMidi = () => {
     setMidiError(null);
@@ -155,8 +158,8 @@ export function SettingsScreen() {
         />
         <StatusCard
           label="BRIDGE"
-          status={midiBridge.hasTarget() ? "online" : "offline"}
-          text={midiBridge.hasTarget() ? "Aktiv" : "Inaktiv"}
+          status={bridgeActive ? "online" : "offline"}
+          text={bridgeActive ? "Aktiv" : "Inaktiv"}
         />
       </section>
 
@@ -227,22 +230,39 @@ export function SettingsScreen() {
         </Field>
         <Field label="MIDI OUTPUT">
           {handle ? (
-            <select
-              className="bg-card border border-border px-2 py-1 rounded"
-              value={outputId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setOutputId(id);
-                handle.selectOutput(id || null);
-                midiBridge.setTarget(id ? handle.midiOut : null);
-                s.setMidiStatus(s.midiInputConnected, !!id);
-              }}
-            >
-              <option value="">— None (silent) —</option>
-              {handle.outputs.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2">
+              <select
+                className="bg-card border border-border px-2 py-1 rounded"
+                value={outputId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setOutputId(id);
+                  handle.selectOutput(id || null);
+                  midiBridge.setTarget(id ? handle.midiOut : null);
+                  setBridgeActive(!!id);
+                  s.setMidiStatus(s.midiInputConnected, !!id);
+                }}
+              >
+                <option value="">— None (silent) —</option>
+                {handle.outputs.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+              <button
+                className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
+                disabled={!outputId}
+                onClick={() => {
+                  // Send a C4 note-on / note-off via the bridge so the user
+                  // can confirm routing is live without playing a chord.
+                  midiBridge.send({ type: "noteOn", note: 60, velocity: 100, channel: 0 });
+                  setTimeout(() => {
+                    midiBridge.send({ type: "noteOff", note: 60, velocity: 0, channel: 0 });
+                  }, 300);
+                }}
+              >
+                TEST NOTE (C4)
+              </button>
+            </div>
           ) : (
             <div className="text-xs text-muted-foreground">
               {midiError ?? "Initialisiere…"}
