@@ -87,6 +87,29 @@ export function SettingsScreen() {
         </nav>
       </header>
 
+      {/* Statusanzeige */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <StatusCard
+          label="WEB MIDI API"
+          status={handle ? "online" : "offline"}
+          text={handle ? "Bereit" : (midiError ?? "Nicht verfügbar")}
+        />
+        <StatusCard
+          label="OUTPUT GERÄT"
+          status={outputId && handle ? "online" : "offline"}
+          text={
+            outputId && handle
+              ? (handle.outputs.find((o) => o.id === outputId)?.name ?? outputId)
+              : "Kein Gerät gewählt"
+          }
+        />
+        <StatusCard
+          label="BRIDGE"
+          status={midiBridge.hasTarget() ? "online" : "offline"}
+          text={midiBridge.hasTarget() ? "Aktiv" : "Inaktiv"}
+        />
+      </section>
+
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Field label="MOCK MODE (INPUT)">
           <button
@@ -273,6 +296,18 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="border border-border rounded-md p-3 bg-card flex flex-col gap-2">
       <div className="text-xs text-muted-foreground tracking-widest">{label}</div>
       {children}
+    </div>
+  );
+}
+
+function StatusCard({ label, status, text }: { label: string; status: "online" | "offline"; text: string }) {
+  return (
+    <div className="border border-border rounded-md p-3 bg-card flex items-center gap-3">
+      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${status === "online" ? "bg-emerald-500" : "bg-rose-500"}`} />
+      <div>
+        <div className="text-[10px] text-muted-foreground tracking-widest">{label}</div>
+        <div className="text-sm font-medium">{text}</div>
+      </div>
     </div>
   );
 }
