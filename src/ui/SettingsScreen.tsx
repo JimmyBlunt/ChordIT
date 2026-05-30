@@ -23,12 +23,9 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
+  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
+  // hardware *input* requirement; users may still pick a real MIDI output.
   useEffect(() => {
-    if (s.mockMode) {
-      setHandle(null);
-      setMidiError(null);
-      return;
-    }
     if (typeof navigator === "undefined" || !("requestMIDIAccess" in navigator)) {
       setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge).");
       return;
@@ -49,7 +46,7 @@ export function SettingsScreen() {
       .catch((err) => {
         setMidiError(`MIDI-Zugriff verweigert: ${err?.message ?? err}`);
       });
-  }, [s.mockMode]);
+  }, []);
 
   useEffect(() => {
     if (!handle) return;
