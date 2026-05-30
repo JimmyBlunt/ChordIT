@@ -305,6 +305,14 @@ export function SettingsScreen() {
         </div>
       )}
 
+      <MappingDiagram
+        mappings={mappings}
+        learning={learning}
+        onClick={(id) => {
+          if (handle) startLearn(id as ControlId);
+        }}
+      />
+
       <section className="border border-border rounded-md">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="tracking-widest text-sm">MIDI MAPPINGS</div>
