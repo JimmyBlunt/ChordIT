@@ -39,13 +39,13 @@ export function SettingsScreen() {
       setMidiError("Web MIDI API wird in diesem Browser nicht unterstützt (nutze Chrome/Edge/Opera).");
       return;
     }
-    initWebMidi()
+    midiManager
+      .init()
       .then((h) => {
         if (!h) {
           setMidiError("Web MIDI konnte nicht initialisiert werden.");
           return;
         }
-        setHandle(h);
         setMidiError(
           h.inputs.length === 0 && h.outputs.length === 0
             ? "Web MIDI verbunden, aber keine Geräte gefunden. Auf macOS: IAC Driver im Audio-MIDI-Setup aktivieren. Auf Windows: loopMIDI installieren."
@@ -61,31 +61,34 @@ export function SettingsScreen() {
       });
   };
 
-  // Initialize Web MIDI regardless of Mock Mode — Mock Mode only disables the
-  // hardware *input* requirement; users may still pick a real MIDI output.
+  // Init Web MIDI via the global singleton; subscribe to handle changes so
+  // the UI updates when init resolves (or fails) later.
   useEffect(() => {
     initMidi();
+    const unsub = midiManager.onHandle((h) => setHandle(h));
+    return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-reconnect last-used devices once handle is ready, and feed midiActivity (IN).
+  // Auto-reconnect last-used devices once handle is ready, and forward
+  // incoming messages to the mapper's learn flow. Note: incoming notes are
+  // already mirrored into midiActivity by midiManager (global), so the piano
+  // monitor lights up on every screen.
   useEffect(() => {
     if (!handle) return;
     if (s.midiInputId && handle.inputs.some((i) => i.id === s.midiInputId)) {
-      handle.selectInput(s.midiInputId);
+      midiManager.selectInput(s.midiInputId);
       setInputId(s.midiInputId);
       s.setMidiStatus(true, s.midiOutputConnected);
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
-      handle.selectOutput(s.midiOutputId);
+      midiManager.selectOutput(s.midiOutputId);
       midiBridge.setTarget(handle.midiOut);
       setOutputId(s.midiOutputId);
       setBridgeActive(true);
       s.setMidiStatus(s.midiInputConnected, true);
     }
-    const unsub = handle.midiIn.onMessage((msg) => {
-      if (msg.type === "noteOn" && msg.velocity > 0) midiActivity.noteOn("in", msg.note);
-      else if (msg.type === "noteOff" || (msg.type === "noteOn" && msg.velocity === 0))
-        midiActivity.noteOff("in", msg.note);
+    const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
       if (learned) {
         setMappings(mapper.list());
