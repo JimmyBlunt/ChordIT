@@ -49,10 +49,29 @@ export const midiManager = {
       .then((h) => {
         handle = h;
         lastError = h ? null : "Web MIDI nicht verfügbar";
-        if (h) attachInput();
+        if (h) {
+          attachInput();
+          // Auto-reconnect last-used devices globally so hardware input/output
+          // works on every screen, not just after visiting Settings.
+          try {
+            const s = useChorditStore.getState();
+            if (s.midiInputId && h.inputs.some((i) => i.id === s.midiInputId)) {
+              h.selectInput(s.midiInputId);
+              s.setMidiStatus(true, s.midiOutputConnected);
+            }
+            if (s.midiOutputId && h.outputs.some((o) => o.id === s.midiOutputId)) {
+              h.selectOutput(s.midiOutputId);
+              midiBridge.setTarget(h.midiOut);
+              s.setMidiStatus(s.midiInputConnected, true);
+            }
+          } catch {
+            // store may not be hydrated yet; Settings will wire devices manually.
+          }
+        }
         emitHandle();
         return h;
       })
+
       .catch((e) => {
         initPromise = null;
         lastError = e?.message ?? String(e);
