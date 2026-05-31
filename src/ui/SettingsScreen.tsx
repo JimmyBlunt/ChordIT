@@ -20,7 +20,9 @@ export function SettingsScreen() {
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
   const [handle, setHandle] = useState<WebMidiHandle | null>(null);
-  const [inputId, setInputId] = useState<string>(s.midiInputId);
+  const [inputIds, setInputIds] = useState<string[]>(
+    s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [],
+  );
   const [outputId, setOutputId] = useState<string>(s.midiOutputId);
   const [midiError, setMidiError] = useState<string | null>(null);
 
@@ -78,9 +80,12 @@ export function SettingsScreen() {
   // monitor lights up on every screen.
   useEffect(() => {
     if (!handle) return;
-    if (s.midiInputId && handle.inputs.some((i) => i.id === s.midiInputId)) {
-      midiManager.selectInput(s.midiInputId);
-      setInputId(s.midiInputId);
+    const savedIds =
+      s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [];
+    const validIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
+    if (validIds.length > 0) {
+      midiManager.selectInputs(validIds);
+      setInputIds(validIds);
       s.setMidiStatus(true, s.midiOutputConnected);
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
