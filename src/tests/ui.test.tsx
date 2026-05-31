@@ -11,24 +11,27 @@ import { midiActivity } from "@/midi/midiActivity";
  */
 describe("UI · PianoKeyboard (RTL smoke)", () => {
   it("renders without crashing", () => {
-    const { container } = render(<PianoKeyboard startNote={48} endNote={72} />);
-    expect(container.querySelector("svg")).toBeTruthy();
+    const { container, getByText } = render(<PianoKeyboard startNote={48} endNote={72} />);
+    expect(container.firstChild).toBeTruthy();
+    expect(getByText("PIANO MONITOR")).toBeTruthy();
   });
 
-  it("renders an SVG with at least one <rect> per white key", () => {
+  it("renders white-key elements with note titles", () => {
     const { container } = render(<PianoKeyboard startNote={48} endNote={60} />);
-    const rects = container.querySelectorAll("rect");
-    // 8 white keys from C3..C4 + black-key rects
-    expect(rects.length).toBeGreaterThanOrEqual(8);
+    const titled = container.querySelectorAll('[title^="MIDI "]');
+    // 8 white keys from C3..C4
+    expect(titled.length).toBeGreaterThanOrEqual(8);
   });
 
   it("reacts to midiActivity bus updates", () => {
     midiActivity.clear();
-    const { container, rerender } = render(<PianoKeyboard startNote={48} endNote={72} />);
+    const { container } = render(<PianoKeyboard startNote={48} endNote={72} />);
     midiActivity.noteOn("in", 60);
-    rerender(<PianoKeyboard startNote={48} endNote={72} />);
-    // After bus emit, at least one rect should carry a highlight class
-    const highlighted = container.querySelectorAll('[class*="sky"], [class*="amber"], [class*="emerald"]');
+    // useEffect subscription is synchronous; React 19 flushes the setState
+    // before the next assertion in act-less render.
+    const highlighted = container.querySelectorAll(
+      '[class*="bg-sky-500"], [class*="bg-amber-500"], [class*="bg-emerald-500"]',
+    );
     expect(highlighted.length).toBeGreaterThan(0);
     midiActivity.clear();
   });
