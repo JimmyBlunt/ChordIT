@@ -7,6 +7,10 @@ import { constrainToKey } from "../key/keyModeEngine";
 import { MockMidi } from "../midi/mockMidi";
 import { midiBridge } from "../midi/midiBridge";
 import { midiManager } from "../midi/midiManager";
+import {
+  findMatchingControl,
+  startMappingDispatcher,
+} from "../midi/mappingDispatcher";
 import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
