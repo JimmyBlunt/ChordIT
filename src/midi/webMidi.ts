@@ -23,7 +23,12 @@ export type WebMidiHandle = {
   access: AccessLike;
   inputs: { id: string; name: string }[];
   outputs: { id: string; name: string }[];
+  /** Legacy single-input select. Replaces the current selection. */
   selectInput: (id: string | null) => void;
+  /** Multi-input select. Listens on ALL given inputs simultaneously. */
+  selectInputs: (ids: string[]) => void;
+  /** Currently active input ids. */
+  getSelectedInputs: () => string[];
   selectOutput: (id: string | null) => void;
   midiIn: MidiIn;
   midiOut: MidiOut;
@@ -38,7 +43,7 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
 
   const listeners: Array<(m: MidiMessage) => void> = [];
   let currentOut: MIDIOutputLike | null = null;
-  let currentIn: MIDIInputLike | null = null;
+  const activeInputs = new Map<string, MIDIInputLike>();
 
   const midiIn: MidiIn = {
     onMessage(cb) {
@@ -85,9 +90,25 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
       name: o.name ?? o.id,
     })),
     selectInput(id) {
-      if (currentIn) currentIn.onmidimessage = null;
-      currentIn = id ? access.inputs.get(id) ?? null : null;
-      if (currentIn) currentIn.onmidimessage = (e) => handleRaw(e.data);
+      handle.selectInputs(id ? [id] : []);
+    },
+    selectInputs(ids) {
+      for (const [oldId, inp] of activeInputs) {
+        if (!ids.includes(oldId)) {
+          inp.onmidimessage = null;
+          activeInputs.delete(oldId);
+        }
+      }
+      for (const id of ids) {
+        if (activeInputs.has(id)) continue;
+        const inp = access.inputs.get(id);
+        if (!inp) continue;
+        inp.onmidimessage = (e) => handleRaw(e.data);
+        activeInputs.set(id, inp);
+      }
+    },
+    getSelectedInputs() {
+      return Array.from(activeInputs.keys());
     },
     selectOutput(id) {
       currentOut = id ? access.outputs.get(id) ?? null : null;

@@ -20,7 +20,9 @@ export function SettingsScreen() {
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
   const [handle, setHandle] = useState<WebMidiHandle | null>(null);
-  const [inputId, setInputId] = useState<string>(s.midiInputId);
+  const [inputIds, setInputIds] = useState<string[]>(
+    s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [],
+  );
   const [outputId, setOutputId] = useState<string>(s.midiOutputId);
   const [midiError, setMidiError] = useState<string | null>(null);
 
@@ -78,9 +80,12 @@ export function SettingsScreen() {
   // monitor lights up on every screen.
   useEffect(() => {
     if (!handle) return;
-    if (s.midiInputId && handle.inputs.some((i) => i.id === s.midiInputId)) {
-      midiManager.selectInput(s.midiInputId);
-      setInputId(s.midiInputId);
+    const savedIds =
+      s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [];
+    const validIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
+    if (validIds.length > 0) {
+      midiManager.selectInputs(validIds);
+      setInputIds(validIds);
       s.setMidiStatus(true, s.midiOutputConnected);
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
@@ -236,30 +241,45 @@ export function SettingsScreen() {
           />
         </Field>
 
-        <Field label="MIDI INPUT">
+        <Field label="MIDI INPUTS (mehrfach wählbar)">
           {handle ? (
-            <select
-              className="bg-card border border-border px-2 py-1 rounded"
-              value={inputId}
-              onChange={(e) => {
-                const id = e.target.value;
-                setInputId(id);
-                handle.selectInput(id || null);
-                s.setMidiStatus(!!id, s.midiOutputConnected);
-                s.setMidiDeviceIds(id, s.midiOutputId);
-              }}
-            >
-              <option value="">— None —</option>
-              {handle.inputs.map((i) => (
-                <option key={i.id} value={i.id}>{i.name}</option>
-              ))}
-            </select>
+            handle.inputs.length === 0 ? (
+              <div className="text-xs text-muted-foreground">Keine Eingänge gefunden.</div>
+            ) : (
+              <div className="flex flex-col gap-1 max-h-40 overflow-auto">
+                {handle.inputs.map((i) => {
+                  const checked = inputIds.includes(i.id);
+                  return (
+                    <label key={i.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/40 px-1 py-0.5 rounded">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          const next = e.target.checked
+                            ? [...inputIds, i.id]
+                            : inputIds.filter((x) => x !== i.id);
+                          setInputIds(next);
+                          handle.selectInputs(next);
+                          s.setMidiInputIds(next);
+                          s.setMidiStatus(next.length > 0, s.midiOutputConnected);
+                        }}
+                      />
+                      <span className="truncate">{i.name}</span>
+                    </label>
+                  );
+                })}
+                <div className="text-[10px] text-muted-foreground mt-1">
+                  Tipp microKONTROL: KEYBOARD- und CTRL-Port beide aktivieren.
+                </div>
+              </div>
+            )
           ) : (
             <div className="text-xs text-muted-foreground">
               {midiError ?? "Initialisiere…"}
             </div>
           )}
         </Field>
+
         <Field label="MIDI OUTPUT">
           {handle ? (
             <div className="flex flex-col gap-2">

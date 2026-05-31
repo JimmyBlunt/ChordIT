@@ -52,6 +52,7 @@ export type State = {
   midiInputConnected: boolean;
   midiOutputConnected: boolean;
   midiInputId: string;
+  midiInputIds: string[];
   midiOutputId: string;
 
   mockMode: boolean;
@@ -84,6 +85,7 @@ export type Actions = {
   setMidiMappings: (m: MidiMapping[]) => void;
   setMidiStatus: (input: boolean, output: boolean) => void;
   setMidiDeviceIds: (input: string, output: string) => void;
+  setMidiInputIds: (ids: string[]) => void;
   setMockMode: (m: boolean) => void;
   setLearningControl: (c: string | null) => void;
   setLoopEnabled: (b: boolean) => void;
@@ -126,6 +128,7 @@ export const useChorditStore = create<State & Actions>()(
       midiInputConnected: false,
       midiOutputConnected: false,
       midiInputId: "",
+      midiInputIds: [],
       midiOutputId: "",
 
       mockMode: false,
@@ -163,6 +166,8 @@ export const useChorditStore = create<State & Actions>()(
         set({ midiInputConnected: input, midiOutputConnected: output }),
       setMidiDeviceIds: (input, output) =>
         set({ midiInputId: input, midiOutputId: output }),
+      setMidiInputIds: (ids) =>
+        set({ midiInputIds: ids, midiInputId: ids[0] ?? "" }),
       setMockMode: (m) => set({ mockMode: m }),
       setLearningControl: (c) => set({ learningControl: c }),
       setLoopEnabled: (b) => set({ loopEnabled: b }),
@@ -190,6 +195,7 @@ export const useChorditStore = create<State & Actions>()(
         selectedKey: s.selectedKey,
         midiMappings: s.midiMappings,
         midiInputId: s.midiInputId,
+        midiInputIds: s.midiInputIds,
         midiOutputId: s.midiOutputId,
         mockMode: s.mockMode,
         loopLength: s.loopLength,
