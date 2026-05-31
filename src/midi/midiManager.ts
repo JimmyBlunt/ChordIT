@@ -55,8 +55,15 @@ export const midiManager = {
           // works on every screen, not just after visiting Settings.
           try {
             const s = useChorditStore.getState();
-            if (s.midiInputId && h.inputs.some((i) => i.id === s.midiInputId)) {
-              h.selectInput(s.midiInputId);
+            // Prefer the multi-input list; fall back to the legacy single id.
+            const ids =
+              s.midiInputIds && s.midiInputIds.length > 0
+                ? s.midiInputIds.filter((id) => h.inputs.some((i) => i.id === id))
+                : s.midiInputId && h.inputs.some((i) => i.id === s.midiInputId)
+                ? [s.midiInputId]
+                : [];
+            if (ids.length > 0) {
+              h.selectInputs(ids);
               s.setMidiStatus(true, s.midiOutputConnected);
             }
             if (s.midiOutputId && h.outputs.some((o) => o.id === s.midiOutputId)) {
