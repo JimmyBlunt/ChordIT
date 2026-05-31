@@ -18,23 +18,31 @@ import { MockMidi } from "@/midi/mockMidi";
  */
 
 describe("14.3 · CC → Voicing-Dial routing", () => {
+  // Voicing-Dial is one mapped CC. Value > 64 = increment (voiceUp),
+  // value < 64 = decrement (voiceDown).
+  function applyVoicingCc(value: number, chord: number[]): number[] {
+    if (value > 64) return voiceUp(chord);
+    if (value < 64) return voiceDown(chord);
+    return chord;
+  }
+
   it("CC increment on Voicing-Dial triggers voiceUp", () => {
     const mapper = new MidiMapper();
-    mapper.set({ controlId: "dial.voicingUp", inputType: "cc", channel: 0, number: 16 });
+    mapper.set({ controlId: "dial.voicing", inputType: "cc", channel: 0, number: 16 });
     let chord = buildChord(60, "Maj", []); // [60,64,67]
     const r = mapper.handle({ type: "cc", cc: 16, value: 65, channel: 0 });
-    expect(r.matched).toBe("dial.voicingUp");
-    if (r.matched === "dial.voicingUp") chord = voiceUp(chord);
+    expect(r.matched).toBe("dial.voicing");
+    if (r.matched === "dial.voicing") chord = applyVoicingCc(65, chord);
     expect(chord).toEqual([64, 67, 72]);
   });
 
   it("CC decrement on Voicing-Dial triggers voiceDown", () => {
     const mapper = new MidiMapper();
-    mapper.set({ controlId: "dial.voicingDown", inputType: "cc", channel: 0, number: 17 });
+    mapper.set({ controlId: "dial.voicing", inputType: "cc", channel: 0, number: 17 });
     let chord = [64, 67, 72];
     const r = mapper.handle({ type: "cc", cc: 17, value: 63, channel: 0 });
-    expect(r.matched).toBe("dial.voicingDown");
-    if (r.matched === "dial.voicingDown") chord = voiceDown(chord);
+    expect(r.matched).toBe("dial.voicing");
+    if (r.matched === "dial.voicing") chord = applyVoicingCc(63, chord);
     expect(chord).toEqual([60, 64, 67]);
   });
 });
