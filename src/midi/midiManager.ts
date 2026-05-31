@@ -1,6 +1,9 @@
 import { initWebMidi, type WebMidiHandle } from "./webMidi";
 import type { MidiMessage } from "./midiTypes";
 import { midiActivity } from "./midiActivity";
+import { midiBridge } from "./midiBridge";
+import { useChorditStore } from "../app/store";
+
 
 /**
  * Global, route-independent MIDI singleton.
