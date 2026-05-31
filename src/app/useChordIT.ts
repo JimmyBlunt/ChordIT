@@ -7,6 +7,10 @@ import { constrainToKey } from "../key/keyModeEngine";
 import { MockMidi } from "../midi/mockMidi";
 import { midiBridge } from "../midi/midiBridge";
 import { midiManager } from "../midi/midiManager";
+import {
+  findMatchingControl,
+  startMappingDispatcher,
+} from "../midi/mappingDispatcher";
 import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
@@ -161,14 +165,20 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
     if (!options.hardwareInput) return;
     hardwareUsers += 1;
     midiManager.init().catch(() => {});
+    // Global mapping dispatcher: pads / dials / buttons drive store actions
+    // on every screen once mappings exist.
+    startMappingDispatcher();
     if (!hardwareUnsub) {
       hardwareUnsub = midiManager.subscribe((msg) => {
-        if (msg.type === "noteOn" && msg.velocity > 0) {
-          playRoot(msg.note, msg.velocity);
-        } else if (
-          msg.type === "noteOff" ||
-          (msg.type === "noteOn" && msg.velocity === 0)
-        ) {
+        // If this incoming note is mapped to a control (pad), don't also
+        // treat it as a chord root — the dispatcher handled it.
+        if (msg.type === "noteOn") {
+          const { midiMappings } = useChorditStore.getState();
+          if (findMatchingControl(msg, midiMappings)) return;
+          if (msg.velocity > 0) playRoot(msg.note, msg.velocity);
+        } else if (msg.type === "noteOff") {
+          const { midiMappings } = useChorditStore.getState();
+          if (findMatchingControl({ ...msg, type: "noteOn", velocity: 1 }, midiMappings)) return;
           releaseRoot(msg.note);
         }
       });
