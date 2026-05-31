@@ -96,6 +96,9 @@ export const midiManager = {
   selectInput(id: string | null) {
     handle?.selectInput(id);
   },
+  selectInputs(ids: string[]) {
+    handle?.selectInputs(ids);
+  },
   selectOutput(id: string | null) {
     handle?.selectOutput(id);
   },
