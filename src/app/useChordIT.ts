@@ -6,6 +6,7 @@ import { applyVoicingMode, voiceDown, voiceUp } from "../voicing/voicingEngine";
 import { constrainToKey } from "../key/keyModeEngine";
 import { MockMidi } from "../midi/mockMidi";
 import { midiBridge } from "../midi/midiBridge";
+import { midiManager } from "../midi/midiManager";
 import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
@@ -132,6 +133,23 @@ export function useChordIT() {
   const toggleExt = useCallback((e: ChordExtension) => {
     useChorditStore.getState().toggleExtension(e);
   }, []);
+
+  // Globally route incoming hardware MIDI notes to the chord engine, so
+  // pressing keys on the hardware keyboard plays chords from ANY screen.
+  useEffect(() => {
+    midiManager.init().catch(() => {});
+    const unsub = midiManager.subscribe((msg) => {
+      if (msg.type === "noteOn" && msg.velocity > 0) {
+        playRoot(msg.note, msg.velocity);
+      } else if (
+        msg.type === "noteOff" ||
+        (msg.type === "noteOn" && msg.velocity === 0)
+      ) {
+        releaseRoot(msg.note);
+      }
+    });
+    return unsub;
+  }, [playRoot, releaseRoot]);
 
   return { playRoot, releaseRoot, voicingShift, toggleExt, midi: midiRef.current!, clock: clockRef.current! };
 }
