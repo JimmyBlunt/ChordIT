@@ -18,7 +18,7 @@ const KEYBOARD_MAP: Record<string, number> = {
 };
 
 export function MainScreen() {
-  const { playRoot, releaseRoot, voicingShift, toggleExt } = useChordIT();
+  const { playRoot, releaseRoot, voicingShift, toggleExt } = useChordIT({ hardwareInput: true });
   const s = useChorditStore();
 
   useEffect(() => {

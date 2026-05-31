@@ -13,42 +13,63 @@ import { MockClock } from "../performance/mockClock";
 import { PATTERNS } from "../performance/patterns";
 import type { ChordExtension } from "../chord/chordTypes";
 
+let sharedMidi: MockMidi | null = null;
+let sharedClock: MockClock | null = null;
+let sharedFanout: MidiOut | null = null;
+let sharedActive: { handle: PerformanceHandle; notes: number[] } | null = null;
+let clockUsers = 0;
+let clockInterval: number | null = null;
+let clockIntervalMs = 0;
+let hardwareUsers = 0;
+let hardwareUnsub: (() => void) | null = null;
+
+function getSharedEngine(bpm: number) {
+  if (!sharedMidi) sharedMidi = new MockMidi();
+  if (!sharedFanout) {
+    sharedFanout = {
+      send(event: NoteEvent) {
+        sharedMidi?.send(event);
+        midiBridge.send(event);
+      },
+    };
+  }
+  if (!sharedClock) {
+    sharedClock = new MockClock(bpm);
+    sharedClock.start();
+  }
+  return { midi: sharedMidi, clock: sharedClock, fanout: sharedFanout };
+}
+
 /**
  * App-side wiring: holds a singleton MockMidi + MockClock for the live UI,
  * and exposes play/stop helpers that drive the engine. Real Web MIDI output
  * can be layered on top by piping MockMidi.send → real MidiOut.
  */
-export function useChordIT() {
+export function useChordIT(options: { hardwareInput?: boolean } = {}) {
   const store = useChorditStore();
-  const midiRef = useRef<MockMidi | null>(null);
-  const clockRef = useRef<MockClock | null>(null);
-  const activeRef = useRef<{ handle: PerformanceHandle; notes: number[] } | null>(null);
-  const fanoutRef = useRef<MidiOut | null>(null);
-
-  if (!midiRef.current) midiRef.current = new MockMidi();
-  if (!fanoutRef.current) {
-    const mock = midiRef.current;
-    fanoutRef.current = {
-      send(event: NoteEvent) {
-        mock.send(event);
-        midiBridge.send(event);
-      },
-    };
-  }
-  if (!clockRef.current) {
-    clockRef.current = new MockClock(store.performanceParams.bpm);
-    clockRef.current.start();
-  }
+  const engineRef = useRef(getSharedEngine(store.performanceParams.bpm));
 
   // Drive the mock clock in real time so arp/pattern modes work in the live UI.
   useEffect(() => {
-    if (!clockRef.current) return;
-    clockRef.current.bpm = store.performanceParams.bpm;
+    const engine = getSharedEngine(store.performanceParams.bpm);
+    engine.clock.bpm = store.performanceParams.bpm;
     const ms = 60000 / (store.performanceParams.bpm * 24);
-    const id = window.setInterval(() => {
-      clockRef.current?.advanceTicks(1);
-    }, ms);
-    return () => window.clearInterval(id);
+    clockUsers += 1;
+    if (!clockInterval || clockIntervalMs !== ms) {
+      if (clockInterval) window.clearInterval(clockInterval);
+      clockIntervalMs = ms;
+      clockInterval = window.setInterval(() => {
+        sharedClock?.advanceTicks(1);
+      }, ms);
+    }
+    return () => {
+      clockUsers = Math.max(0, clockUsers - 1);
+      if (clockUsers === 0 && clockInterval) {
+        window.clearInterval(clockInterval);
+        clockInterval = null;
+        clockIntervalMs = 0;
+      }
+    };
   }, [store.performanceParams.bpm]);
 
   const playRoot = useCallback(
@@ -91,15 +112,15 @@ export function useChordIT() {
       }
 
       // Stop previous performance.
-      if (activeRef.current) activeRef.current.handle.stop();
+      if (sharedActive) sharedActive.handle.stop();
 
       const handle = trigger({
         mode: performanceMode,
         chord: notes,
         velocity,
         channel: 0,
-        midiOut: fanoutRef.current!,
-        clock: clockRef.current!,
+        midiOut: getSharedEngine(performanceParams.bpm).fanout,
+        clock: getSharedEngine(performanceParams.bpm).clock,
         strumDeltaMs: performanceParams.strumDeltaMs,
         slopMaxMs: performanceParams.slopMaxMs,
         slopSeed: Date.now() & 0xffff,
@@ -111,15 +132,15 @@ export function useChordIT() {
         harpDeltaMs: performanceParams.harpDeltaMs,
         harpOctaves: performanceParams.harpOctaves,
       });
-      activeRef.current = { handle, notes };
+      sharedActive = { handle, notes };
     },
     [],
   );
 
   const releaseRoot = useCallback((_rootMidi: number) => {
-    if (activeRef.current) {
-      activeRef.current.handle.stop();
-      activeRef.current = null;
+    if (sharedActive) {
+      sharedActive.handle.stop();
+      sharedActive = null;
     }
   }, []);
 
@@ -137,19 +158,36 @@ export function useChordIT() {
   // Globally route incoming hardware MIDI notes to the chord engine, so
   // pressing keys on the hardware keyboard plays chords from ANY screen.
   useEffect(() => {
+    if (!options.hardwareInput) return;
+    hardwareUsers += 1;
     midiManager.init().catch(() => {});
-    const unsub = midiManager.subscribe((msg) => {
-      if (msg.type === "noteOn" && msg.velocity > 0) {
-        playRoot(msg.note, msg.velocity);
-      } else if (
-        msg.type === "noteOff" ||
-        (msg.type === "noteOn" && msg.velocity === 0)
-      ) {
-        releaseRoot(msg.note);
+    if (!hardwareUnsub) {
+      hardwareUnsub = midiManager.subscribe((msg) => {
+        if (msg.type === "noteOn" && msg.velocity > 0) {
+          playRoot(msg.note, msg.velocity);
+        } else if (
+          msg.type === "noteOff" ||
+          (msg.type === "noteOn" && msg.velocity === 0)
+        ) {
+          releaseRoot(msg.note);
+        }
+      });
+    }
+    return () => {
+      hardwareUsers = Math.max(0, hardwareUsers - 1);
+      if (hardwareUsers === 0) {
+        hardwareUnsub?.();
+        hardwareUnsub = null;
       }
-    });
-    return unsub;
-  }, [playRoot, releaseRoot]);
+    };
+  }, [options.hardwareInput, playRoot, releaseRoot]);
 
-  return { playRoot, releaseRoot, voicingShift, toggleExt, midi: midiRef.current!, clock: clockRef.current! };
+  return {
+    playRoot,
+    releaseRoot,
+    voicingShift,
+    toggleExt,
+    midi: engineRef.current.midi,
+    clock: engineRef.current.clock,
+  };
 }

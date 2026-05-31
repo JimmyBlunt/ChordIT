@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useChordIT } from "@/app/useChordIT";
 import { useChorditStore } from "@/app/store";
 import { MidiMapper } from "@/midi/midiMapper";
 import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
@@ -9,6 +10,7 @@ import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
 export function SettingsScreen() {
+  useChordIT({ hardwareInput: true });
   const s = useChorditStore();
   const mapper = useMemo(() => {
     const m = new MidiMapper();
