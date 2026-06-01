@@ -1,65 +1,98 @@
 
-# ChordIT — Build Plan
+# ChordIT Extension Implementation
 
-A web-based MIDI chord generator + performance instrument, built as a pure, testable engine wrapped in a hardware-inspired React UI. Runs on TanStack Start (already scaffolded). Uses the Web MIDI API in the browser with a Mock MIDI mode so everything works without hardware.
+Scope: add Electronic Mode, 15 Progression Presets, Roman Numeral Resolver, Voicing Recipe Engine, Propose Engine with scored next-chord suggestions, Virtual Keyboard proposal highlights, and full test suite per the spec.
 
-Note on GitHub repo / commits: Lovable manages git internally — I can't push to an external GitHub repo from here. You can connect this project to GitHub from the Lovable UI (Settings → GitHub) and every Lovable change will sync as a commit. I'll proceed with the build.
-
-## Scope (v1)
-
-Implements every section of the spec: mapping, manual chord selection, notation, voicing, all 8 performance modes, BPM clock, Key Mode (12 major keys), main + settings screens, mock MIDI mode, and a Vitest test suite covering the required cases.
-
-## Architecture
-
-Pure, framework-free engine modules — UI only reads state and dispatches events. MIDI I/O and the clock are injected interfaces so tests use mocks.
+## Modules to create (pure, testable)
 
 ```text
-src/
-  chord/        chordEngine.ts, chordNotation.ts, chordTypes.ts
-  voicing/      voicingEngine.ts
-  performance/  performanceEngine.ts, patterns.ts, clock.ts, mockClock.ts
-  key/          keyModeEngine.ts, scales.ts
-  midi/         midiTypes.ts, midiOutput.ts, midiInput.ts,
-                midiMapper.ts, webMidi.ts, mockMidi.ts
-  app/          store.ts (zustand), useChordIT.ts (wires engine ↔ MIDI ↔ store)
-  ui/           MainScreen, PadGrid, RotaryControls, ChordDisplay,
-                SettingsScreen, MappingTable
-  routes/       index.tsx (main), settings.tsx (settings)
-  tests/        chord, notation, voicing, performance, key, mapping
+src/electronic/electronicTypes.ts         # ElectronicChordType, ColourPad, intervals, pad→ext mapping
+src/electronic/electronicChordPresets.ts  # 13 required presets
+src/progressions/progressionTypes.ts      # HarmonicMode, HarmonicStyle, MoodTarget, ScaleContext, VoicingRecipeName, ProgressionPreset
+src/progressions/progressionPresets.ts    # All 15 presets
+src/progressions/romanNumeralResolver.ts  # Major + natural-minor degree → chord; avoidDiminished substitution
+src/progressions/expectedExamples.ts      # Fixture for snapshot tests
+src/voicing/voicingRecipes.ts             # Close, Open, Smooth, BassLow, PedalTop, PedalBass, TopLine, Drop2, OctaveSpread, NoDiminishedSubstitute
+src/propose/proposeTypes.ts               # PlayedChord, ProposeRequest, ChordProposal, scoring weights
+src/propose/proposeEngine.ts              # generate + score + sort + assign colours
+src/propose/styleMovements.ts             # Per-style preferred root movements + colours
+src/ui/keyboardProposalHighlights.ts      # Map ranked proposals → highlight state
 ```
 
-## Engine behavior (key rules)
+## Store changes (`src/app/store.ts`)
 
-- **Chord intervals**: Maj `[0,4,7]`, Min `[0,3,7]`, Sus `[0,5,7]`, Dim `[0,3,6]`. Extensions: `6→9`, `m7→10`, `M7→11`, `9→14`. Sort asc, dedupe.
-- **Notation**: superscript map for digits + letters (`⁶ ⁷ ⁹ ᴹ ᵐ`). 1 ext → superscript; 2 ext → stable order `6, m7, M7, 9`; 3 ext → `ᴶᴬᶻᶻ`; 4 ext → `ᵂᵀᶠ`. Special: Maj + `m7` only ⇒ `C⁷` (dominant 7).
-- **Voicing**: up = pop lowest, push +12, sort; down = pop highest, push −12, sort. Split mode pivots around `splitKey` (default 60). Octave mode folds notes into `[octaveBase, octaveBase+11]` via mod-12.
-- **Performance modes**: Off (chord), Strum (ascending sequential, delta = perf param), Strum2Oct (notes then +12), Slop (strum + seeded jitter), Arpeggiate (loops on 1/8 or 1/16 clock ticks), Arpeggiate2Oct, Pattern (≥10 predefined patterns, velocity-scaled), Harp (fast multi-octave sweep, stops on Note Off).
-- **Clock**: `Clock` interface; `MockClock` with `advanceTicks` / `advanceMs`. 24 PPQN, deterministic.
-- **Key Mode**: 12 major scales as pitch-class sets. Diatonic input → diatonic chord; non-diatonic root → snap each generated note down to nearest in-scale pitch class. Guarantee: every output note's `% 12` is in the scale.
-- **Mapping**: `{ controlId, inputType: "cc"|"note", channel, number }[]`. MIDI Learn captures next event for selected control. Persisted in `localStorage` under `chordit.mappings`.
+- Add `harmonicMode: HarmonicMode` (default `"Standard"`).
+- Add `harmonicStyle: HarmonicStyle` (default `"MelodicTechno"`).
+- Add `moodTarget: MoodTarget` (default `"Deep"`).
+- Add `activeProgressionPresetId?: string`.
+- Add `chordHistory: PlayedChord[]` (cap last 32 entries; pushed by `playRoot`).
+- Add `proposals: ChordProposal[]` and `highlights: KeyboardProposalHighlight[]`.
+- Actions: `setHarmonicMode`, `setHarmonicStyle`, `setMoodTarget`, `setActiveProgressionPresetId`, `proposeNext()`, `clearProposals()`.
+- Persisted in existing zustand persist config.
 
-## UI
+## Integration
 
-- **Main route** (`/`): chord display string (large), root + chord-type + extension chips, 2 rows of 4 pads (Dim/Min/Maj/Sus + 6/m7/M7/9), 3 rotaries (Perform / Voicing / Key) with value readouts, 3 toggle pads, status row (MIDI in/out, mock mode, BPM, key). On-screen QWERTY → MIDI keyboard so it's playable without hardware.
-- **Settings route** (`/settings`): MIDI input/output selectors, mappings table with per-row "Learn" + "Clear", Reset, Save (auto), "Test output" button, Mock-mode toggle, BPM, split key, octave base, default chord type.
-- **Style**: black background, white high-contrast pixel-ish text (JetBrains Mono), green/amber active-pad highlight — hardware feel. All colors via semantic tokens in `src/styles.css`.
+- `useChordIT.playRoot` pushes a `PlayedChord` into `chordHistory`.
+- Add a globally MIDI-mappable `propose` control id (`button.propose`) wired in `mappingDispatcher.ts` to call `proposeNext()`.
+- `MainScreen`: add Mode switcher (Standard / Electronic / Progression / Propose), Electronic colour pads when mode is Electronic, Progression preset picker when Progression mode, and overlay highlight colours on `PianoKeyboard` (green/yellow/blue/purple).
+- `PianoKeyboard` accepts an optional `proposalHighlights` prop and renders coloured ring overlays on matching pitch-class keys.
 
-## Tests (Vitest)
+## Propose Engine algorithm
 
-- **Chord + notation**: iterate all 4 chord types × all 16 extension subsets — assert MIDI array (sorted, deduped, correct count) and display string. Verifies JAZZ at 3, WTF at 4, dominant-7 rule.
-- **Voicing**: up/down inversion, split-mode boundary, octave-mode containment.
-- **Performance**: mock clock — Strum delta timing, Slop variance with seeded RNG (repeatable), Arpeggiate 1/8 vs 1/16 timing + loop length grows with extensions + Note Off stops cleanly, Pattern velocity scaling + ≥10 patterns valid, +12 sequence for 2Oct modes and Harp.
-- **Key Mode**: C major diatonic outputs only in-scale; C# in C major snaps every output note into C major; toggling key updates scale.
-- **Mapping**: learn captures CC + Note bindings, persistence round-trip, reset clears, incoming event dispatches correct action.
+1. Build candidate set: every pitch-class root in the active scale (or all 12 if no key mode), each with a chord colour drawn from style preferences and active preset preferences.
+2. Apply `NoDiminishedSubstitute` when style is electronic and `avoidDiminished` is true.
+3. Score using the spec's weights: key membership, active-preset next-step match, style movement match, mood match, voice-leading distance to last chord, common tones, top-line stepwise, small bass jump, preferred colour, preferred performance mode. Penalties: repetition, out-of-key, dim-in-electronic, large top jump, jazzy-in-minimal.
+4. Filter out-of-key candidates entirely when Key Mode on (never just penalize).
+5. Sort by score desc, take `maxSuggestions` (default 4), assign Best/Good/Alternative/Spicy + green/yellow/blue/purple.
+6. Each proposal gets a `voicingRecipe` and `performanceModeSuggestion` chosen from the active preset (or style defaults) and a human-readable `reason`.
 
-## Tech
+## Roman numeral resolver
 
-TanStack Start (existing), React 19, TypeScript strict, Tailwind v4, zustand for app state, Vitest (already configured in template) for tests. Web MIDI via `navigator.requestMIDIAccess()` behind a `MidiIO` interface so the engine never touches the browser API directly.
+- Major: I, ii, iii, IV, V, vi, vii° (with diminished).
+- Natural minor: i, ii°, III, iv, v, VI, VII.
+- Recognise common extension suffixes in roman tokens (e.g. `v7`, `VImaj9`, `iv7`) → chord type + extensions.
+- `resolvePreset(preset)` returns array of `{ rootName, chordType, extensions }`.
+- `avoidDiminished` mode substitutes ° degrees with Sus2 / Pow / nearest stable diatonic.
 
-## Out of scope for v1
+## Voicing recipes
 
-Minor keys / modes / custom scales, flat note names, multi-user presets, recording/export, mobile-optimized layout, theming.
+Each recipe is `(notes, context) => number[]`. Pure, sort ascending, dedupe. Smooth uses brute-force search over ±2 octave shifts of each tone and picks min Σ|Δ| to previousChordNotes.
 
-## Deliverable
+## Tests
 
-A working ChordIT app at `/`, settings at `/settings`, all engines pure + tested, mock mode usable with zero hardware. After approval I'll implement files in parallel batches and run the test suite to verify.
+Create the seven test files listed in spec §15, plus the integration tests in §22. Use Vitest + RTL (already in project). All tests run headless without MIDI hardware.
+
+Key test groups:
+- Electronic intervals (16.1) + pad mapping (16.2) + preset shape (16.3) + generation matrix (16.4).
+- Preset library: count = 15, unique IDs, required fields, specific assertions for presets 1, 8, 10, 15.
+- Roman numeral resolver: C major + A minor full degree set; preset example resolutions for 1, 4, 5, 8, 10, 12, 13; avoidDiminished behaviour.
+- Voicing recipes: one focused test per recipe.
+- Propose engine: shape, sort, colour mapping, key-mode strictness, out-of-key rejection, active-preset next-step (presets 1, 4, 8, 10), minimal repetition allowed, DancePop/TechHouse/MelodicTechno/Electro style movement matrices, tension mood spicy proposals.
+- Keyboard highlight mapping (21.x): count, colour, pitch-class, key-mode visibility.
+- Integration (22.x): play → propose flow, chord history, electronic pad combos generate correct MIDI, euphoric preset performance suggestion, avoid-diminished substitution.
+
+## UI scope (minimal, focused)
+
+- `MainScreen`: HarmonicMode pill row, Style + Mood selectors, conditional Electronic colour pads, Progression preset dropdown, "Propose" button, proposal list (chord name · voicing · perf mode · reason · colour dot).
+- `PianoKeyboard`: add `proposalHighlights` overlay; outline ring uses semantic tokens (`--success`, `--warning`, `--info`, `--accent` mapped to green/yellow/blue/purple).
+- No backend changes. No new dependencies.
+
+## Build order
+
+1. Types + electronic presets + electronic generation + tests.
+2. Progression preset data + expectedExamples fixture + tests.
+3. Roman numeral resolver + tests.
+4. Voicing recipes + tests.
+5. Propose engine + style movements + tests.
+6. Keyboard highlight mapper + tests.
+7. Store wiring (mode, style, mood, history, proposals) + playRoot history capture + mapping dispatcher `button.propose`.
+8. UI: MainScreen mode/style/mood controls, electronic pads, progression picker, propose button + list, PianoKeyboard highlight overlay.
+9. Integration tests.
+10. Run `bunx vitest run`, fix red, ship.
+
+## Non-goals (deferred / version 2)
+
+- Slash-chord MIDI output (resolver flags substitution in `reason` only).
+- Chord-tone highlights on the keyboard (root pitch class only, per spec §12 v1).
+- Auto-cycling through progression steps (Propose only).
+- Persisting `chordHistory` across reloads (kept in-memory).
