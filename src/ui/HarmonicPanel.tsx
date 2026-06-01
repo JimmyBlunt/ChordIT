@@ -6,6 +6,29 @@ import {
 } from "@/progressions/progressionTypes";
 import { progressionPresets } from "@/progressions/progressionPresets";
 import type { ProposalColor } from "@/propose/proposeTypes";
+import type { ChordExtension, ChordType } from "@/chord/chordTypes";
+
+function mapProposalToStd(
+  chordType: string,
+  exts: string[],
+): { chordType: ChordType; extensions: ChordExtension[] } | null {
+  const ctMap: Record<string, ChordType> = {
+    Maj: "Maj",
+    Min: "Min",
+    Sus: "Sus",
+    Sus2: "Sus",
+    Sus4: "Sus",
+    Dim: "Dim",
+    Pow: "Maj",
+  };
+  const ct = ctMap[chordType];
+  if (!ct) return null;
+  const allowed: ChordExtension[] = ["6", "m7", "M7", "9"];
+  const extensions = exts.filter((e): e is ChordExtension =>
+    (allowed as string[]).includes(e),
+  );
+  return { chordType: ct, extensions };
+}
 
 const COLOR_CLASS: Record<ProposalColor, string> = {
   green: "border-emerald-500 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]",
