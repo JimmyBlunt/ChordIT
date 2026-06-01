@@ -117,15 +117,28 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
         performanceParams,
       } = useChorditStore.getState();
 
-      let notes = buildChord(rootMidi, selectedChordType, activeExtensions);
-      notes = applyVoicingMode(notes, voicingMode, splitKey, octaveBase);
-      if (keyModeEnabled) notes = constrainToKey(notes, selectedKey);
-
-      const display = getChordDisplayString(
-        rootMidi,
-        selectedChordType,
-        activeExtensions,
-      );
+      const { harmonicMode } = useChorditStore.getState();
+      let notes: number[];
+      let display: string;
+      if (harmonicMode === "Electronic") {
+        const eType = STD_TO_ELECTRONIC[selectedChordType];
+        const pads = activeExtensions.map((e) => EXT_TO_PAD[e]);
+        notes = buildElectronicChord(rootMidi, eType, pads);
+        notes = applyVoicingMode(notes, voicingMode, splitKey, octaveBase);
+        if (keyModeEnabled) notes = constrainToKey(notes, selectedKey);
+        const padTag = pads.length ? `[${pads.join("+")}]` : "";
+        const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+        display = `${NAMES[rootMidi % 12]}${eType}${padTag}`;
+      } else {
+        notes = buildChord(rootMidi, selectedChordType, activeExtensions);
+        notes = applyVoicingMode(notes, voicingMode, splitKey, octaveBase);
+        if (keyModeEnabled) notes = constrainToKey(notes, selectedKey);
+        display = getChordDisplayString(
+          rootMidi,
+          selectedChordType,
+          activeExtensions,
+        );
+      }
       useChorditStore.getState().setRootNote(rootMidi);
       useChorditStore.getState().setChord(notes, display);
 
