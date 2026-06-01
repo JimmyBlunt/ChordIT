@@ -49,8 +49,14 @@ export function SettingsScreen() {
   const s = useChorditStore();
   const mapper = useMemo(() => {
     const m = new MidiMapper();
-    m.load();
+    const loaded = m.load();
+    if (loaded.length === 0 && s.midiMappings.length > 0) {
+      s.midiMappings.forEach((mapping) => m.set(mapping));
+      m.save();
+    }
     return m;
+    // Create once from persisted state; recreating would interrupt learn mode.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
