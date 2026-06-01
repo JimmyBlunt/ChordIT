@@ -145,6 +145,8 @@ export function MainScreen() {
         </section>
       </div>
 
+      <HarmonicPanel />
+
       <PianoKeyboard />
 
       <MiniSequencer />
