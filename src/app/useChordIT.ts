@@ -15,7 +15,25 @@ import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
 import { PATTERNS } from "../performance/patterns";
-import type { ChordExtension } from "../chord/chordTypes";
+import type { ChordExtension, ChordType } from "../chord/chordTypes";
+import {
+  buildElectronicChord,
+  type ElectronicChordType,
+  type ElectronicColourPad,
+} from "../electronic/electronicTypes";
+
+const STD_TO_ELECTRONIC: Record<ChordType, ElectronicChordType> = {
+  Dim: "Dim",
+  Min: "Min",
+  Maj: "Maj",
+  Sus: "Sus2",
+};
+const EXT_TO_PAD: Record<ChordExtension, ElectronicColourPad> = {
+  "6": "Warm",
+  m7: "Deep",
+  M7: "Dream",
+  "9": "Air",
+};
 
 let sharedMidi: MockMidi | null = null;
 let sharedClock: MockClock | null = null;
@@ -99,15 +117,28 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
         performanceParams,
       } = useChorditStore.getState();
 
-      let notes = buildChord(rootMidi, selectedChordType, activeExtensions);
-      notes = applyVoicingMode(notes, voicingMode, splitKey, octaveBase);
-      if (keyModeEnabled) notes = constrainToKey(notes, selectedKey);
-
-      const display = getChordDisplayString(
-        rootMidi,
-        selectedChordType,
-        activeExtensions,
-      );
+      const { harmonicMode } = useChorditStore.getState();
+      let notes: number[];
+      let display: string;
+      if (harmonicMode === "Electronic") {
+        const eType = STD_TO_ELECTRONIC[selectedChordType];
+        const pads = activeExtensions.map((e) => EXT_TO_PAD[e]);
+        notes = buildElectronicChord(rootMidi, eType, pads);
+        notes = applyVoicingMode(notes, voicingMode, splitKey, octaveBase);
+        if (keyModeEnabled) notes = constrainToKey(notes, selectedKey);
+        const padTag = pads.length ? `[${pads.join("+")}]` : "";
+        const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+        display = `${NAMES[rootMidi % 12]}${eType}${padTag}`;
+      } else {
+        notes = buildChord(rootMidi, selectedChordType, activeExtensions);
+        notes = applyVoicingMode(notes, voicingMode, splitKey, octaveBase);
+        if (keyModeEnabled) notes = constrainToKey(notes, selectedKey);
+        display = getChordDisplayString(
+          rootMidi,
+          selectedChordType,
+          activeExtensions,
+        );
+      }
       useChorditStore.getState().setRootNote(rootMidi);
       useChorditStore.getState().setChord(notes, display);
 

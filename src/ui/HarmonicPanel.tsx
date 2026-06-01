@@ -6,6 +6,29 @@ import {
 } from "@/progressions/progressionTypes";
 import { progressionPresets } from "@/progressions/progressionPresets";
 import type { ProposalColor } from "@/propose/proposeTypes";
+import type { ChordExtension, ChordType } from "@/chord/chordTypes";
+
+function mapProposalToStd(
+  chordType: string,
+  exts: string[],
+): { chordType: ChordType; extensions: ChordExtension[] } | null {
+  const ctMap: Record<string, ChordType> = {
+    Maj: "Maj",
+    Min: "Min",
+    Sus: "Sus",
+    Sus2: "Sus",
+    Sus4: "Sus",
+    Dim: "Dim",
+    Pow: "Maj",
+  };
+  const ct = ctMap[chordType];
+  if (!ct) return null;
+  const allowed: ChordExtension[] = ["6", "m7", "M7", "9"];
+  const extensions = exts.filter((e): e is ChordExtension =>
+    (allowed as string[]).includes(e),
+  );
+  return { chordType: ct, extensions };
+}
 
 const COLOR_CLASS: Record<ProposalColor, string> = {
   green: "border-emerald-500 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.4)]",
@@ -14,7 +37,13 @@ const COLOR_CLASS: Record<ProposalColor, string> = {
   purple: "border-purple-500 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]",
 };
 
-export function HarmonicPanel() {
+export function HarmonicPanel({
+  onPlay,
+  onRelease,
+}: {
+  onPlay?: (rootMidi: number, velocity?: number) => void;
+  onRelease?: (rootMidi: number) => void;
+} = {}) {
   const s = useChorditStore();
   return (
     <section className="border border-border rounded-md bg-card p-4 flex flex-col gap-3">
@@ -63,22 +92,41 @@ export function HarmonicPanel() {
             Play a chord to see suggestions…
           </div>
         )}
-        {s.proposals.map((p) => (
-          <div
-            key={`${p.rootPitchClass}-${p.displayName}`}
-            className={`border rounded-md p-2 bg-background/40 flex flex-col gap-1 ${COLOR_CLASS[p.color]}`}
-          >
-            <div className="flex items-baseline justify-between">
-              <div className="text-lg tracking-widest">{p.displayName}</div>
-              <div className="text-[9px] uppercase opacity-70">{p.strength}</div>
-            </div>
-            <div className="text-[10px] text-muted-foreground tracking-widest">
-              {p.romanNumeral} · {p.voicingRecipe} · {p.performanceModeSuggestion}
-            </div>
-            <div className="text-[10px] text-muted-foreground/80 line-clamp-2">{p.reason}</div>
-            <div className="text-[9px] opacity-60">score {p.score}</div>
-          </div>
-        ))}
+        {s.proposals.map((p) => {
+          const handlePlay = () => {
+            // Map proposal chord type + extensions back into store.
+            const std = mapProposalToStd(p.chordType, p.extensions);
+            if (std) {
+              s.setChordType(std.chordType);
+              s.setExtensions(std.extensions);
+            }
+            // Snap pitch class to nearest MIDI note around octaveBase.
+            const base = s.octaveBase;
+            const pc = ((p.rootPitchClass % 12) + 12) % 12;
+            const baseRoot = base - (base % 12) + pc;
+            const root = baseRoot < base - 6 ? baseRoot + 12 : baseRoot;
+            onPlay?.(root, 100);
+            window.setTimeout(() => onRelease?.(root), 350);
+          };
+          return (
+            <button
+              key={`${p.rootPitchClass}-${p.displayName}`}
+              type="button"
+              onClick={handlePlay}
+              className={`text-left border rounded-md p-2 bg-background/40 flex flex-col gap-1 hover:bg-background/70 transition-colors ${COLOR_CLASS[p.color]}`}
+            >
+              <div className="flex items-baseline justify-between">
+                <div className="text-lg tracking-widest">{p.displayName}</div>
+                <div className="text-[9px] uppercase opacity-70">{p.strength}</div>
+              </div>
+              <div className="text-[10px] text-muted-foreground tracking-widest">
+                {p.romanNumeral} · {p.voicingRecipe} · {p.performanceModeSuggestion}
+              </div>
+              <div className="text-[10px] text-muted-foreground/80 line-clamp-2">{p.reason}</div>
+              <div className="text-[9px] opacity-60">score {p.score}</div>
+            </button>
+          );
+        })}
       </div>
     </section>
   );
