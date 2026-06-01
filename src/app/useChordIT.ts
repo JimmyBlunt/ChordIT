@@ -20,7 +20,12 @@ import type { ChordExtension } from "../chord/chordTypes";
 let sharedMidi: MockMidi | null = null;
 let sharedClock: MockClock | null = null;
 let sharedFanout: MidiOut | null = null;
-let sharedActive: { handle: PerformanceHandle; notes: number[] } | null = null;
+let sharedActive:
+  | { handle: PerformanceHandle; notes: number[]; rootMidi: number }
+  | null = null;
+// Track which root notes are currently held down so legato/overlap doesn't
+// cut off a still-held chord when an earlier key is released.
+const heldRoots = new Set<number>();
 let clockUsers = 0;
 let clockInterval: number | null = null;
 let clockIntervalMs = 0;
