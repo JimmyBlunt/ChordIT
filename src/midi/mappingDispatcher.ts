@@ -121,6 +121,32 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       s.setLoopRecording(!s.loopRecording);
       return;
     }
+    case "button.propose": {
+      if (!isTrigger(msg)) return;
+      void (async () => {
+        const [{ generateProposals }, { progressionPresets }] = await Promise.all([
+          import("../propose/proposeEngine"),
+          import("../progressions/progressionPresets"),
+        ]);
+        const st = useChorditStore.getState();
+        const preset = st.activeProgressionPresetId
+          ? progressionPresets.find((p) => p.id === st.activeProgressionPresetId)
+          : undefined;
+        const keyStr = preset?.exampleKey ?? `${st.selectedKey} major`;
+        const proposals = generateProposals({
+          selectedKey: keyStr,
+          keyModeEnabled: st.keyModeEnabled,
+          harmonicMode: st.harmonicMode,
+          harmonicStyle: st.harmonicStyle,
+          moodTarget: st.moodTarget,
+          activeProgressionPresetId: st.activeProgressionPresetId ?? undefined,
+          chordHistory: st.chordHistory,
+          maxSuggestions: 4,
+        });
+        useChorditStore.getState().setProposals(proposals);
+      })();
+      return;
+    }
   }
 }
 
