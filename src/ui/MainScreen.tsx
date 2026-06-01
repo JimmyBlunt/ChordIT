@@ -145,7 +145,7 @@ export function MainScreen() {
         </section>
       </div>
 
-      <HarmonicPanel />
+      <HarmonicPanel onPlay={playRoot} onRelease={releaseRoot} />
 
       <PianoKeyboard />
 
