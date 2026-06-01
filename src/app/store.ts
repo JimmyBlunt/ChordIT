@@ -73,6 +73,14 @@ export type State = {
 
   /** User-saved rhythm patterns (additive to built-in PATTERNS) */
   userPatterns: Pattern[];
+
+  /** Harmonic extension (Electronic Mode / Progression / Propose). */
+  harmonicMode: HarmonicMode;
+  harmonicStyle: HarmonicStyle;
+  moodTarget: MoodTarget;
+  activeProgressionPresetId: string | null;
+  chordHistory: PlayedChord[];
+  proposals: ChordProposal[];
 };
 
 export type Actions = {
