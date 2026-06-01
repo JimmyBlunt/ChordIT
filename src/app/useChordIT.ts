@@ -20,7 +20,12 @@ import type { ChordExtension } from "../chord/chordTypes";
 let sharedMidi: MockMidi | null = null;
 let sharedClock: MockClock | null = null;
 let sharedFanout: MidiOut | null = null;
-let sharedActive: { handle: PerformanceHandle; notes: number[] } | null = null;
+let sharedActive:
+  | { handle: PerformanceHandle; notes: number[]; rootMidi: number }
+  | null = null;
+// Track which root notes are currently held down so legato/overlap doesn't
+// cut off a still-held chord when an earlier key is released.
+const heldRoots = new Set<number>();
 let clockUsers = 0;
 let clockInterval: number | null = null;
 let clockIntervalMs = 0;
@@ -119,8 +124,12 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
         });
       }
 
-      // Stop previous performance.
+      // Stop previous performance only if it's a different root, so retriggering
+      // the same key restarts cleanly but a new key overlapping an old one
+      // first stops the old one before starting the new.
       if (sharedActive) sharedActive.handle.stop();
+
+      heldRoots.add(rootMidi);
 
       const handle = trigger({
         mode: performanceMode,
@@ -140,13 +149,17 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
         harpDeltaMs: performanceParams.harpDeltaMs,
         harpOctaves: performanceParams.harpOctaves,
       });
-      sharedActive = { handle, notes };
+      sharedActive = { handle, notes, rootMidi };
     },
     [],
   );
 
-  const releaseRoot = useCallback((_rootMidi: number) => {
-    if (sharedActive) {
+  const releaseRoot = useCallback((rootMidi: number) => {
+    heldRoots.delete(rootMidi);
+    // Only stop the active performance if the released key actually owns it.
+    // Otherwise an earlier key being released would cut off a chord that the
+    // user is still holding via a newer key (overlap / legato playing).
+    if (sharedActive && sharedActive.rootMidi === rootMidi) {
       sharedActive.handle.stop();
       sharedActive = null;
     }
