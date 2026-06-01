@@ -15,7 +15,25 @@ import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
 import { PATTERNS } from "../performance/patterns";
-import type { ChordExtension } from "../chord/chordTypes";
+import type { ChordExtension, ChordType } from "../chord/chordTypes";
+import {
+  buildElectronicChord,
+  type ElectronicChordType,
+  type ElectronicColourPad,
+} from "../electronic/electronicTypes";
+
+const STD_TO_ELECTRONIC: Record<ChordType, ElectronicChordType> = {
+  Dim: "Dim",
+  Min: "Min",
+  Maj: "Maj",
+  Sus: "Sus2",
+};
+const EXT_TO_PAD: Record<ChordExtension, ElectronicColourPad> = {
+  "6": "Warm",
+  m7: "Deep",
+  M7: "Dream",
+  "9": "Air",
+};
 
 let sharedMidi: MockMidi | null = null;
 let sharedClock: MockClock | null = null;
