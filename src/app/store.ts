@@ -9,6 +9,12 @@ import type {
 import type { KeyName } from "../key/scales";
 import type { MidiMapping } from "../midi/midiTypes";
 import type { Pattern } from "../performance/patterns";
+import type {
+  HarmonicMode,
+  HarmonicStyle,
+  MoodTarget,
+} from "../progressions/progressionTypes";
+import type { ChordProposal, PlayedChord } from "../propose/proposeTypes";
 
 export type PerformanceParams = {
   strumDeltaMs: number;
