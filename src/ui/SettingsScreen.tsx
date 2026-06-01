@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useChordIT } from "@/app/useChordIT";
-import { useChorditStore } from "@/app/store";
+import { useChorditStore, type State } from "@/app/store";
 import { MidiMapper } from "@/midi/midiMapper";
 import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { type WebMidiHandle } from "@/midi/webMidi";
@@ -16,17 +16,33 @@ type SavedMidiConfig = {
   midiInputIds: string[];
   midiOutputId: string;
   mockMode: boolean;
-  selectedChordType: typeof useChorditStore.getState extends () => infer T ? T extends { selectedChordType: infer V } ? V : never : never;
-  activeExtensions: typeof useChorditStore.getState extends () => infer T ? T extends { activeExtensions: infer V } ? V : never : never;
-  performanceMode: typeof useChorditStore.getState extends () => infer T ? T extends { performanceMode: infer V } ? V : never : never;
-  performanceParams: typeof useChorditStore.getState extends () => infer T ? T extends { performanceParams: infer V } ? V : never : never;
-  voicingMode: typeof useChorditStore.getState extends () => infer T ? T extends { voicingMode: infer V } ? V : never : never;
+  selectedChordType: State["selectedChordType"];
+  activeExtensions: State["activeExtensions"];
+  performanceMode: State["performanceMode"];
+  performanceParams: State["performanceParams"];
+  voicingMode: State["voicingMode"];
   splitKey: number;
   octaveBase: number;
   keyModeEnabled: boolean;
-  selectedKey: typeof useChorditStore.getState extends () => infer T ? T extends { selectedKey: infer V } ? V : never : never;
+  selectedKey: State["selectedKey"];
   loopLength: number;
 };
+
+function isValidMapping(value: unknown): value is MidiMapping {
+  if (!value || typeof value !== "object") return false;
+  const m = value as Partial<MidiMapping>;
+  return (
+    typeof m.controlId === "string" &&
+    ALL_CONTROL_IDS.includes(m.controlId as ControlId) &&
+    (m.inputType === "cc" || m.inputType === "note") &&
+    typeof m.channel === "number" &&
+    m.channel >= 0 &&
+    m.channel <= 15 &&
+    typeof m.number === "number" &&
+    m.number >= 0 &&
+    m.number <= 127
+  );
+}
 
 export function SettingsScreen() {
   useChordIT({ hardwareInput: true });
