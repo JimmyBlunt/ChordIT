@@ -14,7 +14,13 @@ const COLOR_CLASS: Record<ProposalColor, string> = {
   purple: "border-purple-500 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.35)]",
 };
 
-export function HarmonicPanel() {
+export function HarmonicPanel({
+  onPlay,
+  onRelease,
+}: {
+  onPlay?: (rootMidi: number, velocity?: number) => void;
+  onRelease?: (rootMidi: number) => void;
+} = {}) {
   const s = useChorditStore();
   return (
     <section className="border border-border rounded-md bg-card p-4 flex flex-col gap-3">
