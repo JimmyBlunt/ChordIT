@@ -184,7 +184,7 @@ describe("Propose engine — Dance Pop style movements (§20.12)", () => {
 
 describe("Propose engine — Tension mood in Electro (§20.15)", () => {
   it("Key mode keeps all notes in key", () => {
-    const inKey = new Set([0, 2, 3, 5, 7, 8, 10]); // A minor pcs
+    const inKey = new Set([9, 11, 0, 2, 4, 5, 7]); // A minor pcs
     const r = generateProposals(
       makeReq({
         harmonicStyle: "Electro",

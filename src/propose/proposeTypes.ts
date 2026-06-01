@@ -49,7 +49,7 @@ export type ChordProposal = {
 
 export const scoringWeights = {
   belongsToKey: 30,
-  matchesActiveProgressionNextStep: 35,
+  matchesActiveProgressionNextStep: 60,
   matchesGenreMovement: 25,
   matchesMood: 20,
   smoothVoiceLeading: 20,
