@@ -9,6 +9,25 @@ import { midiManager } from "@/midi/midiManager";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
+type SavedMidiConfig = {
+  version: 1;
+  exportedAt: string;
+  midiMappings: MidiMapping[];
+  midiInputIds: string[];
+  midiOutputId: string;
+  mockMode: boolean;
+  selectedChordType: typeof useChorditStore.getState extends () => infer T ? T extends { selectedChordType: infer V } ? V : never : never;
+  activeExtensions: typeof useChorditStore.getState extends () => infer T ? T extends { activeExtensions: infer V } ? V : never : never;
+  performanceMode: typeof useChorditStore.getState extends () => infer T ? T extends { performanceMode: infer V } ? V : never : never;
+  performanceParams: typeof useChorditStore.getState extends () => infer T ? T extends { performanceParams: infer V } ? V : never : never;
+  voicingMode: typeof useChorditStore.getState extends () => infer T ? T extends { voicingMode: infer V } ? V : never : never;
+  splitKey: number;
+  octaveBase: number;
+  keyModeEnabled: boolean;
+  selectedKey: typeof useChorditStore.getState extends () => infer T ? T extends { selectedKey: infer V } ? V : never : never;
+  loopLength: number;
+};
+
 export function SettingsScreen() {
   useChordIT({ hardwareInput: true });
   const s = useChorditStore();
@@ -25,6 +44,7 @@ export function SettingsScreen() {
   );
   const [outputId, setOutputId] = useState<string>(s.midiOutputId);
   const [midiError, setMidiError] = useState<string | null>(null);
+  const [configMessage, setConfigMessage] = useState<string | null>(null);
 
   useEffect(() => {
     s.setMidiMappings(mappings);
@@ -121,6 +141,83 @@ export function SettingsScreen() {
     mapper.set({ controlId: id, inputType: type, channel, number });
     setMappings(mapper.list());
     mapper.save();
+  };
+
+  const exportConfig = () => {
+    const state = useChorditStore.getState();
+    const config: SavedMidiConfig = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      midiMappings: mapper.list(),
+      midiInputIds: inputIds,
+      midiOutputId: outputId,
+      mockMode: state.mockMode,
+      selectedChordType: state.selectedChordType,
+      activeExtensions: state.activeExtensions,
+      performanceMode: state.performanceMode,
+      performanceParams: state.performanceParams,
+      voicingMode: state.voicingMode,
+      splitKey: state.splitKey,
+      octaveBase: state.octaveBase,
+      keyModeEnabled: state.keyModeEnabled,
+      selectedKey: state.selectedKey,
+      loopLength: state.loopLength,
+    };
+    const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chordit-midi-config-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setConfigMessage("Konfig gespeichert/exportiert.");
+  };
+
+  const importConfig = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text()) as Partial<SavedMidiConfig>;
+      const nextMappings = Array.isArray(parsed.midiMappings)
+        ? parsed.midiMappings.filter(isValidMapping)
+        : [];
+      mapper.reset();
+      nextMappings.forEach((m) => mapper.set(m));
+      mapper.save();
+      setMappings(mapper.list());
+      s.setMidiMappings(mapper.list());
+
+      const nextInputIds = Array.isArray(parsed.midiInputIds)
+        ? parsed.midiInputIds.filter((id): id is string => typeof id === "string")
+        : [];
+      setInputIds(nextInputIds);
+      s.setMidiInputIds(nextInputIds);
+      if (handle) handle.selectInputs(nextInputIds);
+
+      const nextOutputId = typeof parsed.midiOutputId === "string" ? parsed.midiOutputId : "";
+      setOutputId(nextOutputId);
+      s.setMidiDeviceIds(nextInputIds[0] ?? "", nextOutputId);
+      if (handle) {
+        handle.selectOutput(nextOutputId || null);
+        midiBridge.setTarget(nextOutputId ? handle.midiOut : null);
+        setBridgeActive(!!nextOutputId);
+      }
+
+      if (typeof parsed.mockMode === "boolean") s.setMockMode(parsed.mockMode);
+      if (parsed.selectedChordType) s.setChordType(parsed.selectedChordType);
+      if (Array.isArray(parsed.activeExtensions)) s.setExtensions(parsed.activeExtensions);
+      if (parsed.performanceMode) s.setPerformanceMode(parsed.performanceMode);
+      if (parsed.performanceParams) s.setPerformanceParams(parsed.performanceParams);
+      if (parsed.voicingMode) s.setVoicingMode(parsed.voicingMode);
+      if (typeof parsed.splitKey === "number") s.setSplitKey(parsed.splitKey);
+      if (typeof parsed.octaveBase === "number") s.setOctaveBase(parsed.octaveBase);
+      if (typeof parsed.keyModeEnabled === "boolean" && parsed.keyModeEnabled !== s.keyModeEnabled) s.toggleKeyMode();
+      if (parsed.selectedKey) s.setSelectedKey(parsed.selectedKey);
+      if (typeof parsed.loopLength === "number") s.setLoopLength(parsed.loopLength);
+      s.setMidiStatus(nextInputIds.length > 0, !!nextOutputId);
+      setConfigMessage(`${nextMappings.length} Mappings geladen.`);
+    } catch (err) {
+      setConfigMessage(`Import fehlgeschlagen: ${err instanceof Error ? err.message : String(err)}`);
+    }
   };
 
 
@@ -329,6 +426,38 @@ export function SettingsScreen() {
           {midiError}
         </div>
       )}
+
+      <section className="border border-border rounded-md p-3 bg-card flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="tracking-widest text-sm">MIDI CONFIG BACKUP</div>
+            <div className="text-[10px] text-muted-foreground">
+              Sichert Mappings, Inputs, Output und Performance-Werte als JSON-Datei.
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              className="text-xs border border-border rounded px-2 py-1 hover:bg-accent"
+              onClick={exportConfig}
+            >
+              SAVE / EXPORT
+            </button>
+            <label className="text-xs border border-border rounded px-2 py-1 hover:bg-accent cursor-pointer">
+              LOAD / IMPORT
+              <input
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  void importConfig(e.target.files?.[0] ?? null);
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
+        </div>
+        {configMessage && <div className="text-xs text-muted-foreground">{configMessage}</div>}
+      </section>
 
       <MappingDiagram
         mappings={mappings}
