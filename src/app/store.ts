@@ -183,6 +183,7 @@ export const useChorditStore = create<State & Actions>()(
     {
       name: "chordit.store",
       storage: createJSONStorage(() => localStorage),
+      skipHydration: true,
       partialize: (s) => ({
         selectedChordType: s.selectedChordType,
         activeExtensions: s.activeExtensions,

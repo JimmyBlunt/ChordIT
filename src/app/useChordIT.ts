@@ -53,6 +53,10 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
   const store = useChorditStore();
   const engineRef = useRef(getSharedEngine(store.performanceParams.bpm));
 
+  useEffect(() => {
+    void useChorditStore.persist.rehydrate();
+  }, []);
+
   // Drive the mock clock in real time so arp/pattern modes work in the live UI.
   useEffect(() => {
     const engine = getSharedEngine(store.performanceParams.bpm);
