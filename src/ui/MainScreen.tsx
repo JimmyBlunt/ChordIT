@@ -6,6 +6,7 @@ import { PATTERNS } from "@/performance/patterns";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MockPanel } from "@/ui/MockPanel";
 import { MiniSequencer } from "@/ui/MiniSequencer";
+import { HarmonicPanel } from "@/ui/HarmonicPanel";
 import type { ChordExtension, ChordType } from "@/chord/chordTypes";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
