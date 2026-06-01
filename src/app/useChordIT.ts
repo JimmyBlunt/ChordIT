@@ -124,6 +124,40 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
         });
       }
 
+      // Push to chord history and refresh proposals.
+      void (async () => {
+        const [{ makePlayedChord, generateProposals }, { progressionPresets }] =
+          await Promise.all([
+            import("../propose/proposeEngine"),
+            import("../progressions/progressionPresets"),
+          ]);
+        const st = useChorditStore.getState();
+        const played = makePlayedChord({
+          rootMidi,
+          chordType: selectedChordType,
+          extensions: activeExtensions,
+          midiNotes: notes,
+          displayName: display,
+        });
+        st.pushChord(played);
+        const after = useChorditStore.getState();
+        const preset = after.activeProgressionPresetId
+          ? progressionPresets.find((p) => p.id === after.activeProgressionPresetId)
+          : undefined;
+        const keyStr = preset?.exampleKey ?? `${after.selectedKey} major`;
+        const proposals = generateProposals({
+          selectedKey: keyStr,
+          keyModeEnabled: after.keyModeEnabled,
+          harmonicMode: after.harmonicMode,
+          harmonicStyle: after.harmonicStyle,
+          moodTarget: after.moodTarget,
+          activeProgressionPresetId: after.activeProgressionPresetId ?? undefined,
+          chordHistory: after.chordHistory,
+          maxSuggestions: 4,
+        });
+        useChorditStore.getState().setProposals(proposals);
+      })();
+
       // Stop previous performance only if it's a different root, so retriggering
       // the same key restarts cleanly but a new key overlapping an old one
       // first stops the old one before starting the new.

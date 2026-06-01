@@ -9,6 +9,12 @@ import type {
 import type { KeyName } from "../key/scales";
 import type { MidiMapping } from "../midi/midiTypes";
 import type { Pattern } from "../performance/patterns";
+import type {
+  HarmonicMode,
+  HarmonicStyle,
+  MoodTarget,
+} from "../progressions/progressionTypes";
+import type { ChordProposal, PlayedChord } from "../propose/proposeTypes";
 
 export type PerformanceParams = {
   strumDeltaMs: number;
@@ -67,6 +73,14 @@ export type State = {
 
   /** User-saved rhythm patterns (additive to built-in PATTERNS) */
   userPatterns: Pattern[];
+
+  /** Harmonic extension (Electronic Mode / Progression / Propose). */
+  harmonicMode: HarmonicMode;
+  harmonicStyle: HarmonicStyle;
+  moodTarget: MoodTarget;
+  activeProgressionPresetId: string | null;
+  chordHistory: PlayedChord[];
+  proposals: ChordProposal[];
 };
 
 export type Actions = {
@@ -95,6 +109,13 @@ export type Actions = {
   setLoopLengthPending: (n: number) => void;
   addUserPattern: (p: Pattern) => void;
   removeUserPattern: (id: string) => void;
+  setHarmonicMode: (m: HarmonicMode) => void;
+  setHarmonicStyle: (s: HarmonicStyle) => void;
+  setMoodTarget: (m: MoodTarget) => void;
+  setActiveProgressionPresetId: (id: string | null) => void;
+  pushChord: (c: PlayedChord) => void;
+  clearChordHistory: () => void;
+  setProposals: (p: ChordProposal[]) => void;
 };
 
 export const useChorditStore = create<State & Actions>()(
@@ -142,6 +163,13 @@ export const useChorditStore = create<State & Actions>()(
 
       userPatterns: [],
 
+      harmonicMode: "Standard",
+      harmonicStyle: "MelodicTechno",
+      moodTarget: "Uplifting",
+      activeProgressionPresetId: null,
+      chordHistory: [],
+      proposals: [],
+
       setChordType: (t) => set({ selectedChordType: t }),
       toggleExtension: (e) =>
         set((s) => ({
@@ -179,6 +207,14 @@ export const useChorditStore = create<State & Actions>()(
         set((s) => ({ userPatterns: [...s.userPatterns.filter((x) => x.id !== p.id), p] })),
       removeUserPattern: (id) =>
         set((s) => ({ userPatterns: s.userPatterns.filter((p) => p.id !== id) })),
+      setHarmonicMode: (m) => set({ harmonicMode: m }),
+      setHarmonicStyle: (st) => set({ harmonicStyle: st }),
+      setMoodTarget: (m) => set({ moodTarget: m }),
+      setActiveProgressionPresetId: (id) => set({ activeProgressionPresetId: id }),
+      pushChord: (c) =>
+        set((s) => ({ chordHistory: [...s.chordHistory, c].slice(-16) })),
+      clearChordHistory: () => set({ chordHistory: [] }),
+      setProposals: (p) => set({ proposals: p }),
     }),
     {
       name: "chordit.store",
@@ -201,6 +237,10 @@ export const useChorditStore = create<State & Actions>()(
         mockMode: s.mockMode,
         loopLength: s.loopLength,
         userPatterns: s.userPatterns,
+        harmonicMode: s.harmonicMode,
+        harmonicStyle: s.harmonicStyle,
+        moodTarget: s.moodTarget,
+        activeProgressionPresetId: s.activeProgressionPresetId,
       }),
     },
   ),

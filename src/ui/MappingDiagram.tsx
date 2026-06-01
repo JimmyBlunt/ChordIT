@@ -25,6 +25,7 @@ const LAYOUT: Record<ControlId, Pos> = {
 
   "button.loop": { x: 260, y: 175, r: 18, label: "LOOP", kind: "btn" },
   "button.record": { x: 310, y: 175, r: 18, label: "REC", kind: "btn" },
+  "button.propose": { x: 360, y: 175, r: 18, label: "PROP", kind: "btn" },
 };
 
 export function MappingDiagram({

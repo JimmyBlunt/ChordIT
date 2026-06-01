@@ -31,7 +31,8 @@ export type ControlId =
   | "toggle.voicing"
   | "toggle.key"
   | "button.loop"
-  | "button.record";
+  | "button.record"
+  | "button.propose";
 
 export type MidiMapping = {
   controlId: ControlId;
@@ -58,4 +59,5 @@ export const ALL_CONTROL_IDS: ControlId[] = [
   "toggle.key",
   "button.loop",
   "button.record",
+  "button.propose",
 ];
