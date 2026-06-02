@@ -34,17 +34,44 @@ const VOICING_MODES: VoicingMode[] = ["Split", "Octave"];
 // ── LCD helpers ───────────────────────────────────────────────────────────
 const lcdGlobalChannel = 0;
 let lastLcdClearTimer: ReturnType<typeof setTimeout> | null = null;
+const lcdValueTimers = new Map<number, ReturnType<typeof setTimeout>>();
+const idleSubLcdLabels = new Map<number, string>([
+  [1, "PERFORM"],
+  [2, "VOICING"],
+  [3, "KEY"],
+  [4, "LOOPLEN"],
+  [5, "STYLE"],
+  [6, "MOOD"],
+  [7, "PROG"],
+  [8, "BPM"],
+]);
 
-/** Schreibt "TITLE" auf Main-LCD und (optional) value auf Sub-LCD 1. */
+function fit8(s: string): string {
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+/** Schreibt kurz den letzten Parameter aufs Main-LCD. */
 export function showLcd(title: string, value?: string, color: LcdColor = "orange") {
-  midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, "main", title, color));
-  if (value !== undefined) {
-    midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, 1, value, color));
-  }
+  midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, "main", value ? `${title} ${value}` : title, color));
   if (lastLcdClearTimer) clearTimeout(lastLcdClearTimer);
   lastLcdClearTimer = setTimeout(() => {
     midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, "main", "ChordIT", "green"));
-  }, 1500);
+  }, 2000);
+}
+
+/**
+ * Sub-LCD: während der Bedienung 2s den Wert zeigen, danach wieder den Namen.
+ */
+export function showControlValue(lcdNum: number, label: string, value: string, color: LcdColor = "orange") {
+  idleSubLcdLabels.set(lcdNum, fit8(label.toUpperCase()));
+  const oldTimer = lcdValueTimers.get(lcdNum);
+  if (oldTimer) clearTimeout(oldTimer);
+  midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, lcdNum, fit8(value.toUpperCase()), color));
+  const timer = setTimeout(() => {
+    lcdValueTimers.delete(lcdNum);
+    midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, lcdNum, idleSubLcdLabels.get(lcdNum) ?? fit8(label), color));
+  }, 2000);
+  lcdValueTimers.set(lcdNum, timer);
 }
 
 // ── Native Mode SysEx parser ──────────────────────────────────────────────
@@ -194,32 +221,39 @@ function handleEncoder(index: number, delta: number) {
   switch (index) {
     case 0:
       s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, delta));
+      showControlValue(1, "PERFORM", useChorditStore.getState().performanceMode);
       showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
       return;
     case 1:
       s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, delta));
+      showControlValue(2, "VOICING", useChorditStore.getState().voicingMode);
       showLcd("VOICING", useChorditStore.getState().voicingMode.toUpperCase());
       return;
     case 2:
       if (!s.keyModeEnabled) {
+        showControlValue(3, "KEY", "LOCK OFF", "red");
         showLcd("KEY LOCK", "OFF");
         return;
       }
       s.setSelectedKey(cycle(ALL_KEYS, s.selectedKey, delta));
+      showControlValue(3, "KEY", useChorditStore.getState().selectedKey);
       showLcd("KEY", useChorditStore.getState().selectedKey);
       return;
     case 3: {
       const next = Math.min(16, Math.max(4, s.loopLength + (delta > 0 ? 1 : -1)));
       s.setLoopLength(next);
+      showControlValue(4, "LOOPLEN", `${next}`);
       showLcd("LOOP LEN", `${next}`);
       return;
     }
     case 4:
       s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, delta));
+      showControlValue(5, "STYLE", useChorditStore.getState().harmonicStyle);
       showLcd("STYLE", useChorditStore.getState().harmonicStyle.toUpperCase());
       return;
     case 5:
       s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, delta));
+      showControlValue(6, "MOOD", String(useChorditStore.getState().moodTarget));
       showLcd("MOOD", String(useChorditStore.getState().moodTarget).toUpperCase());
       return;
     case 6: {
@@ -228,12 +262,14 @@ function handleEncoder(index: number, delta: number) {
       const cur = s.activeProgressionPresetId ?? ids[0];
       const nextId = cycle(ids, cur, delta);
       s.setActiveProgressionPresetId(nextId);
+      showControlValue(7, "PROG", nextId.slice(0, 8));
       showLcd("PROG", nextId.slice(0, 8).toUpperCase());
       return;
     }
     case 7: {
       const next = Math.max(40, Math.min(240, s.performanceParams.bpm + (delta > 0 ? 1 : -1)));
       s.setPerformanceParams({ bpm: next });
+      showControlValue(8, "BPM", `${next}`);
       showLcd("BPM", `${next}`);
       return;
     }
@@ -250,6 +286,7 @@ function handleSlider(index: number, value: number) {
       if (idx !== s.performanceParams.patternIndex) {
         s.setPerformanceParams({ patternIndex: idx });
       }
+      showControlValue(1, "RHYTHM", `PAT ${idx + 1}`);
       showLcd("RHYTHM", `PAT ${idx + 1}`);
       return;
     }
@@ -269,7 +306,51 @@ function handleSlider(index: number, value: number) {
         });
       }
       s.setVoicingShiftValue(target);
+      showControlValue(2, "V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
       showLcd("V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
+      return;
+    }
+    case 2: {
+      const next = Math.round(5 + (value / 127) * 115);
+      s.setPerformanceParams({ strumDeltaMs: next });
+      showControlValue(3, "STRUM", `${next}MS`);
+      showLcd("STRUM", `${next}MS`);
+      return;
+    }
+    case 3: {
+      const next = Math.round((value / 127) * 80);
+      s.setPerformanceParams({ slopMaxMs: next });
+      showControlValue(4, "SLOP", `${next}MS`);
+      showLcd("SLOP", `${next}MS`);
+      return;
+    }
+    case 4: {
+      const steps = [24, 12, 8, 6, 4, 3, 2, 1];
+      const next = steps[Math.min(steps.length - 1, Math.floor((value / 128) * steps.length))];
+      s.setPerformanceParams({ arpIntervalTicks: next });
+      showControlValue(5, "ARP", `${next}T`);
+      showLcd("ARP", `${next}T`);
+      return;
+    }
+    case 5: {
+      const next = Math.round(5 + (value / 127) * 95);
+      s.setPerformanceParams({ harpDeltaMs: next });
+      showControlValue(6, "HARP", `${next}MS`);
+      showLcd("HARP", `${next}MS`);
+      return;
+    }
+    case 6: {
+      const next = Math.max(1, Math.min(4, Math.round(1 + (value / 127) * 3)));
+      s.setPerformanceParams({ harpOctaves: next });
+      showControlValue(7, "HARP OCT", `${next}`);
+      showLcd("HARP OCT", `${next}`);
+      return;
+    }
+    case 7: {
+      const next = Math.max(24, Math.min(84, Math.round(24 + (value / 127) * 60)));
+      s.setOctaveBase(next);
+      showControlValue(8, "OCTBASE", `${next}`);
+      showLcd("OCT BASE", `${next}`);
       return;
     }
   }
@@ -335,31 +416,9 @@ export function startNativePadNotes(
 }
 
 // ── Persistent Sub-LCD labels (Sub-LCD 1..8 over the 8 encoder columns) ──
-function fit8(s: string): string {
-  return s.length > 8 ? s.slice(0, 8) : s;
-}
-
-/**
- * Sub-LCD 1..8 = Encoder/Slider column labels. Sub-LCDs sind zweizeilig
- * (8 Zeichen), aber das microKONTROL-Display-LCD-Kommando schreibt nur
- * eine Zeile — daher wechseln wir die Anzeige zwischen Title (NAME) und
- * Value über Updates. Wir setzen direkt den aktuellen Value, damit der
- * User Style/Mood/Key/Pattern… ablesen kann, während im Main-LCD der
- * letzte geänderte Parameter steht.
- */
 export function pushAllSubLcds(channel = 0) {
-  const st = useChorditStore.getState();
-  const pairs: Array<[number, string]> = [
-    [1, fit8(st.performanceMode)],
-    [2, fit8(st.voicingMode)],
-    [3, fit8(st.selectedKey)],
-    [4, fit8(`LEN ${st.loopLength}`)],
-    [5, fit8(st.harmonicStyle)],
-    [6, fit8(String(st.moodTarget))],
-    [7, fit8((st.activeProgressionPresetId ?? "—").toUpperCase())],
-    [8, fit8(`BPM ${st.performanceParams.bpm}`)],
-  ];
-  for (const [lcdNum, text] of pairs) {
+  for (const [lcdNum, text] of idleSubLcdLabels) {
+    if (lcdValueTimers.has(lcdNum)) continue;
     midiBridge.sendSysEx(lcdSysex(channel, lcdNum, text, "orange"));
   }
 }
@@ -374,6 +433,8 @@ export function startSubLcdSync(channel = 0): () => void {
   return () => {
     subLcdUnsub?.();
     subLcdUnsub = null;
+    for (const timer of lcdValueTimers.values()) clearTimeout(timer);
+    lcdValueTimers.clear();
   };
 }
 

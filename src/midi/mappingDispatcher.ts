@@ -3,6 +3,7 @@ import { useChorditStore, PERFORMANCE_MODES } from "../app/store";
 import { ALL_KEYS } from "../key/scales";
 import type { ChordExtension, ChordType, VoicingMode } from "../chord/chordTypes";
 import type { ControlId, MidiMapping, MidiMessage } from "./midiTypes";
+import { DEFAULT_MIDI_MAPPINGS, MICROKONTROL_LEGACY_SCENE_MAPPINGS } from "./midiTypes";
 import {
   ALL_HARMONIC_MODES,
   ALL_HARMONIC_STYLES,
@@ -10,7 +11,7 @@ import {
 } from "../progressions/progressionTypes";
 import { progressionPresets } from "../progressions/progressionPresets";
 import { PATTERNS } from "../performance/patterns";
-import { areNativePadNotesActive, isNativePadNoteNumber, showLcd } from "./microKontrolNative";
+import { areNativePadNotesActive, isNativePadNoteNumber, showControlValue, showLcd } from "./microKontrolNative";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
@@ -32,7 +33,12 @@ export function findMatchingControl(
     if (m.inputType === "note" && msg.type === "noteOn") return m.number === msg.note;
     return false;
   });
-  return m ? m.controlId : null;
+  if (m) return m.controlId;
+  const fallback = [...DEFAULT_MIDI_MAPPINGS, ...MICROKONTROL_LEGACY_SCENE_MAPPINGS].find((m) => {
+    if (m.channel !== msg.channel) return false;
+    return m.inputType === "cc" && msg.type === "cc" && m.number === msg.cc;
+  });
+  return fallback ? fallback.controlId : null;
 }
 
 function cycle<T>(arr: readonly T[], current: T, dir: 1 | -1): T {
@@ -46,11 +52,21 @@ function dialDirection(msg: MidiMessage, key: string): 1 | -1 | null {
     // Note triggers always advance forward.
     return msg.type === "noteOn" ? 1 : null;
   }
+  if (msg.channel === 15 && msg.cc >= 16 && msg.cc <= 23) {
+    if (msg.value === 0) return null;
+    return msg.value > 64 ? -1 : 1;
+  }
   const prev = lastCc.get(key);
   lastCc.set(key, msg.value);
   if (prev === undefined) return msg.value >= 64 ? 1 : -1;
   if (msg.value > prev) return 1;
   if (msg.value < prev) return -1;
+  return null;
+}
+
+function ccValue(msg: MidiMessage): number | null {
+  if (msg.type === "cc") return msg.value;
+  if (msg.type === "noteOn") return msg.velocity;
   return null;
 }
 
@@ -87,6 +103,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, dir));
+      showControlValue(1, "PERFORM", useChorditStore.getState().performanceMode);
       showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
       return;
     }
@@ -94,6 +111,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, dir));
+      showControlValue(2, "VOICING", useChorditStore.getState().voicingMode);
       showLcd("VOICING", useChorditStore.getState().voicingMode.toUpperCase());
       return;
     }
@@ -102,10 +120,12 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (!dir) return;
       // Per ChordIT spec: CC#51 cycles Key only when Keylock (keyMode) is enabled.
       if (!s.keyModeEnabled) {
+        showControlValue(3, "KEY", "LOCK OFF", "red");
         showLcd("KEY LOCK", "OFF");
         return;
       }
       s.setSelectedKey(cycle(ALL_KEYS, s.selectedKey, dir));
+      showControlValue(3, "KEY", useChorditStore.getState().selectedKey);
       showLcd("KEY", useChorditStore.getState().selectedKey);
       return;
     }
@@ -114,6 +134,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (!dir) return;
       const next = Math.min(16, Math.max(4, s.loopLength + dir));
       s.setLoopLength(next);
+      showControlValue(4, "LOOPLEN", `${next}`);
       showLcd("LOOP LEN", `${next}`);
       return;
     }
@@ -121,6 +142,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, dir));
+      showControlValue(5, "STYLE", useChorditStore.getState().harmonicStyle);
       showLcd("STYLE", useChorditStore.getState().harmonicStyle.toUpperCase());
       return;
     }
@@ -128,6 +150,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, dir));
+      showControlValue(6, "MOOD", String(useChorditStore.getState().moodTarget));
       showLcd("MOOD", String(useChorditStore.getState().moodTarget).toUpperCase());
       return;
     }
@@ -139,7 +162,17 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const cur = s.activeProgressionPresetId ?? ids[0];
       const nextId = cycle(ids, cur, dir);
       s.setActiveProgressionPresetId(nextId);
+      showControlValue(7, "PROG", nextId.slice(0, 8));
       showLcd("PROG", nextId.slice(0, 8).toUpperCase());
+      return;
+    }
+    case "dial.bpm": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      const next = Math.max(40, Math.min(240, s.performanceParams.bpm + dir));
+      s.setPerformanceParams({ bpm: next });
+      showControlValue(8, "BPM", `${next}`);
+      showLcd("BPM", `${next}`);
       return;
     }
     case "slider.rhythm": {
@@ -147,8 +180,8 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       // into N equal segments where N = total available patterns. Each segment
       // selects exactly one preset, so moving the slider across the full range
       // sweeps once through all presets (not per-tick cycling).
-      if (msg.type !== "cc" && msg.type !== "noteOn") return;
-      const value = msg.type === "cc" ? msg.value : msg.velocity;
+      const value = ccValue(msg);
+      if (value === null) return;
       const total = PATTERNS.length + s.userPatterns.length;
       if (total === 0) return;
       // Map 0..127 → 0..total-1 by equal segments.
@@ -156,6 +189,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (idx !== s.performanceParams.patternIndex) {
         s.setPerformanceParams({ patternIndex: idx });
       }
+      showControlValue(1, "RHYTHM", `PAT ${idx + 1}`);
       showLcd("RHYTHM", `PAT ${idx + 1}`);
       // Remember the last raw value so dialDirection stays consistent if reused.
       lastCc.set(id, value);
@@ -165,8 +199,8 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       // Voicing shift slider: absolute mapping — slider range (0..127) maps
       // linearly to -6..+6 semitones. Delta vs. last position is applied as
       // voiceUp/voiceDown so the on-screen slider visually mirrors hardware.
-      if (msg.type !== "cc" && msg.type !== "noteOn") return;
-      const value = msg.type === "cc" ? msg.value : msg.velocity;
+      const value = ccValue(msg);
+      if (value === null) return;
       // 0..127 → -6..+6
       const target = Math.max(-6, Math.min(6, Math.round((value / 127) * 12) - 6));
       const prev = s.voicingShiftValue;
@@ -183,7 +217,69 @@ function dispatch(id: ControlId, msg: MidiMessage) {
         });
       }
       s.setVoicingShiftValue(target);
+      showControlValue(2, "V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
       showLcd("V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.strum": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.round(5 + (value / 127) * 115);
+      s.setPerformanceParams({ strumDeltaMs: next });
+      showControlValue(3, "STRUM", `${next}MS`);
+      showLcd("STRUM", `${next}MS`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.slop": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.round((value / 127) * 80);
+      s.setPerformanceParams({ slopMaxMs: next });
+      showControlValue(4, "SLOP", `${next}MS`);
+      showLcd("SLOP", `${next}MS`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.arp": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const steps = [24, 12, 8, 6, 4, 3, 2, 1];
+      const next = steps[Math.min(steps.length - 1, Math.floor((value / 128) * steps.length))];
+      s.setPerformanceParams({ arpIntervalTicks: next });
+      showControlValue(5, "ARP", `${next}T`);
+      showLcd("ARP", `${next}T`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.harp": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.round(5 + (value / 127) * 95);
+      s.setPerformanceParams({ harpDeltaMs: next });
+      showControlValue(6, "HARP", `${next}MS`);
+      showLcd("HARP", `${next}MS`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.harpOctaves": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.max(1, Math.min(4, Math.round(1 + (value / 127) * 3)));
+      s.setPerformanceParams({ harpOctaves: next });
+      showControlValue(7, "HARP OCT", `${next}`);
+      showLcd("HARP OCT", `${next}`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.octaveBase": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.max(24, Math.min(84, Math.round(24 + (value / 127) * 60)));
+      s.setOctaveBase(next);
+      showControlValue(8, "OCTBASE", `${next}`);
+      showLcd("OCT BASE", `${next}`);
       lastCc.set(id, value);
       return;
     }

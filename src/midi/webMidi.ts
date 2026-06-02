@@ -106,7 +106,7 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
       msg = { type: "noteOn", note: d1, velocity: d2, channel };
     } else if (kind === 0x80 || (kind === 0x90 && d2 === 0)) {
       msg = { type: "noteOff", note: d1, velocity: d2, channel };
-    } else if (kind === 0xb0) {
+    } else if (kind === 0xb0 || (status & 0xf0) === 0xb0) {
       msg = { type: "cc", cc: d1, value: d2, channel };
     }
     if (msg) for (const l of listeners) l(msg);

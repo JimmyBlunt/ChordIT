@@ -21,9 +21,16 @@ const LAYOUT: Record<ControlId, Pos> = {
   "dial.style": { x: 250, y: 130, r: 18, label: "STYLE", kind: "rot" },
   "dial.mood": { x: 310, y: 130, r: 18, label: "MOOD", kind: "rot" },
   "dial.progression": { x: 250, y: 175, r: 16, label: "PROG", kind: "rot" },
+  "dial.bpm": { x: 310, y: 175, r: 16, label: "BPM", kind: "rot" },
 
   "slider.rhythm": { x: 50, y: 145, r: 12, label: "RHY", kind: "rot" },
   "slider.voicingShift": { x: 95, y: 145, r: 12, label: "V·SH", kind: "rot" },
+  "slider.strum": { x: 50, y: 122, r: 10, label: "STR", kind: "rot" },
+  "slider.slop": { x: 95, y: 122, r: 10, label: "SLP", kind: "rot" },
+  "slider.arp": { x: 140, y: 122, r: 10, label: "ARP", kind: "rot" },
+  "slider.harp": { x: 185, y: 122, r: 10, label: "HRP", kind: "rot" },
+  "slider.harpOctaves": { x: 140, y: 170, r: 10, label: "H·O", kind: "rot" },
+  "slider.octaveBase": { x: 185, y: 170, r: 10, label: "OCT", kind: "rot" },
 
   "toggle.perform": { x: 140, y: 145, r: 10, label: "T·P", kind: "btn" },
   "toggle.voicing": { x: 170, y: 145, r: 10, label: "T·V", kind: "btn" },

@@ -31,8 +31,15 @@ export type ControlId =
   | "dial.style"
   | "dial.mood"
   | "dial.progression"
+  | "dial.bpm"
   | "slider.rhythm"
   | "slider.voicingShift"
+  | "slider.strum"
+  | "slider.slop"
+  | "slider.arp"
+  | "slider.harp"
+  | "slider.harpOctaves"
+  | "slider.octaveBase"
   | "toggle.perform"
   | "toggle.voicing"
   | "toggle.key"
@@ -64,8 +71,15 @@ export const ALL_CONTROL_IDS: ControlId[] = [
   "dial.style",
   "dial.mood",
   "dial.progression",
+  "dial.bpm",
   "slider.rhythm",
   "slider.voicingShift",
+  "slider.strum",
+  "slider.slop",
+  "slider.arp",
+  "slider.harp",
+  "slider.harpOctaves",
+  "slider.octaveBase",
   "toggle.perform",
   "toggle.voicing",
   "toggle.key",
@@ -76,26 +90,31 @@ export const ALL_CONTROL_IDS: ControlId[] = [
 ];
 
 /**
- * Default microKONTROL Librarian mapping from the factory-style scene shown in
- * the Korg Editor Librarian:
- * - Encoders: Port B, channels 1..8, CC#18
- * - Sliders:  Port B, channels 1..8, CC#7
+ * Default microKONTROL Native KORG mapping used after the 4-packet init:
+ * - Encoders: CC channel 16, CC#16..23
+ * - Sliders:  CC channel 16, CC#0..7
  * - Native Init remaps pads to notes 36..51 on Port B.
  *   ChordIT uses Pad 9..16 = notes 44..51 for chord/extension selection.
- * - Pad A 1..8:  Port B, channel 9, individual CCs in the Librarian scene.
  */
 export const DEFAULT_MIDI_MAPPINGS: MidiMapping[] = [
-  // ── Encoders 1..7 (CC#18, channels 1..7) ─────────────────────────────
-  { controlId: "dial.perform", inputType: "cc", channel: 0, number: 18 },
-  { controlId: "dial.voicing", inputType: "cc", channel: 1, number: 18 },
-  { controlId: "dial.key", inputType: "cc", channel: 2, number: 18 },
-  { controlId: "dial.loopLen", inputType: "cc", channel: 3, number: 18 },
-  { controlId: "dial.style", inputType: "cc", channel: 4, number: 18 },
-  { controlId: "dial.mood", inputType: "cc", channel: 5, number: 18 },
-  { controlId: "dial.progression", inputType: "cc", channel: 6, number: 18 },
-  // ── Sliders 1..2 (CC#7, channels 1..2) ───────────────────────────────
-  { controlId: "slider.rhythm", inputType: "cc", channel: 0, number: 7 },
-  { controlId: "slider.voicingShift", inputType: "cc", channel: 1, number: 7 },
+  // ── Encoders 1..8 (Native: BF 10..17 vv) ──────────────────────────────
+  { controlId: "dial.perform", inputType: "cc", channel: 15, number: 16 },
+  { controlId: "dial.voicing", inputType: "cc", channel: 15, number: 17 },
+  { controlId: "dial.key", inputType: "cc", channel: 15, number: 18 },
+  { controlId: "dial.loopLen", inputType: "cc", channel: 15, number: 19 },
+  { controlId: "dial.style", inputType: "cc", channel: 15, number: 20 },
+  { controlId: "dial.mood", inputType: "cc", channel: 15, number: 21 },
+  { controlId: "dial.progression", inputType: "cc", channel: 15, number: 22 },
+  { controlId: "dial.bpm", inputType: "cc", channel: 15, number: 23 },
+  // ── Sliders 1..8 (Native: BF 00..07 vv) ───────────────────────────────
+  { controlId: "slider.rhythm", inputType: "cc", channel: 15, number: 0 },
+  { controlId: "slider.voicingShift", inputType: "cc", channel: 15, number: 1 },
+  { controlId: "slider.strum", inputType: "cc", channel: 15, number: 2 },
+  { controlId: "slider.slop", inputType: "cc", channel: 15, number: 3 },
+  { controlId: "slider.arp", inputType: "cc", channel: 15, number: 4 },
+  { controlId: "slider.harp", inputType: "cc", channel: 15, number: 5 },
+  { controlId: "slider.harpOctaves", inputType: "cc", channel: 15, number: 6 },
+  { controlId: "slider.octaveBase", inputType: "cc", channel: 15, number: 7 },
   // ── Native Init Pads 9..16 (notes 44..51, Port B, channel 1) ───────────
   { controlId: "chord.Dim", inputType: "note", channel: 0, number: 44 },
   { controlId: "chord.Min", inputType: "note", channel: 0, number: 45 },
@@ -113,4 +132,24 @@ export const DEFAULT_MIDI_MAPPINGS: MidiMapping[] = [
   { controlId: "button.record", inputType: "cc", channel: 8, number: 85 },
   { controlId: "button.loop", inputType: "cc", channel: 8, number: 86 },
   { controlId: "button.mode", inputType: "cc", channel: 8, number: 87 },
+];
+
+/** Fallback aliases for older saved Librarian-style scenes. */
+export const MICROKONTROL_LEGACY_SCENE_MAPPINGS: MidiMapping[] = [
+  { controlId: "dial.perform", inputType: "cc", channel: 0, number: 18 },
+  { controlId: "dial.voicing", inputType: "cc", channel: 1, number: 18 },
+  { controlId: "dial.key", inputType: "cc", channel: 2, number: 18 },
+  { controlId: "dial.loopLen", inputType: "cc", channel: 3, number: 18 },
+  { controlId: "dial.style", inputType: "cc", channel: 4, number: 18 },
+  { controlId: "dial.mood", inputType: "cc", channel: 5, number: 18 },
+  { controlId: "dial.progression", inputType: "cc", channel: 6, number: 18 },
+  { controlId: "dial.bpm", inputType: "cc", channel: 7, number: 18 },
+  { controlId: "slider.rhythm", inputType: "cc", channel: 0, number: 7 },
+  { controlId: "slider.voicingShift", inputType: "cc", channel: 1, number: 7 },
+  { controlId: "slider.strum", inputType: "cc", channel: 2, number: 7 },
+  { controlId: "slider.slop", inputType: "cc", channel: 3, number: 7 },
+  { controlId: "slider.arp", inputType: "cc", channel: 4, number: 7 },
+  { controlId: "slider.harp", inputType: "cc", channel: 5, number: 7 },
+  { controlId: "slider.harpOctaves", inputType: "cc", channel: 6, number: 7 },
+  { controlId: "slider.octaveBase", inputType: "cc", channel: 7, number: 7 },
 ];
