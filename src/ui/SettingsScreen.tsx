@@ -516,7 +516,7 @@ export function SettingsScreen() {
               <button
                 className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
                 disabled={!ledOutputId}
-                onClick={sendNativeModeAndLedSnapshot}
+                onClick={() => sendNativeModeAndLedSnapshot()}
               >
                 NATIVE MODE + LED SNAPSHOT SENDEN
               </button>
