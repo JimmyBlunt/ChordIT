@@ -47,8 +47,7 @@ class MidiBridge implements MidiOut {
   /** Forward a raw SysEx payload to the active output (e.g. microKONTROL LEDs). */
   sendSysEx(data: number[]) {
     if (!this.target?.sendSysEx) return false;
-    this.target.sendSysEx(data);
-    return true;
+    return this.target.sendSysEx(data) !== false;
   }
 }
 

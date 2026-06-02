@@ -76,11 +76,13 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
     },
     sendSysEx(data: number[]) {
       const out = currentSysExOut ?? currentOut;
-      if (!out) return;
+      if (!out) return false;
       try {
         out.send(data);
+        return true;
       } catch {
         // Browser refused SysEx (permission denied) — silently drop.
+        return false;
       }
     },
   };
