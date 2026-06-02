@@ -164,8 +164,7 @@ export function SettingsScreen() {
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
-      midiBridge.sendSysEx(nativeModeInRequestSysex(0));
-      pushAllLeds(0);
+      void runNativeModeInit(0).then(() => pushAllLeds(0));
     }
     const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
