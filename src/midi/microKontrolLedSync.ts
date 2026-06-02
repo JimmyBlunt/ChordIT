@@ -60,8 +60,9 @@ export function releaseNativeMode(channel = 0): boolean {
 /** Idempotent global start. Returns Promise that resolves once init is done. */
 export async function startMicroKontrolLedSync(channel = 0): Promise<() => void> {
   if (started) return () => {};
+  const ready = await runNativeModeInit(channel);
+  if (!ready) return () => {};
   started = true;
-  await runNativeModeInit(channel);
   pushAllLeds(channel);
 
   unsub = useChorditStore.subscribe((s) => {

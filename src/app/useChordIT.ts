@@ -11,6 +11,11 @@ import {
   findMatchingControl,
   startMappingDispatcher,
 } from "../midi/mappingDispatcher";
+import {
+  areNativePadNotesActive,
+  isNativePadNoteNumber,
+  startNativePadNotes,
+} from "../midi/microKontrolNative";
 import type { MidiOut, NoteEvent } from "../midi/midiTypes";
 import { trigger, type PerformanceHandle } from "../performance/performanceEngine";
 import { MockClock } from "../performance/mockClock";
@@ -49,6 +54,7 @@ let clockInterval: number | null = null;
 let clockIntervalMs = 0;
 let hardwareUsers = 0;
 let hardwareUnsub: (() => void) | null = null;
+let nativePadUnsub: (() => void) | null = null;
 
 function getSharedEngine(bpm: number) {
   if (!sharedMidi) sharedMidi = new MockMidi();
@@ -257,6 +263,9 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
     // Global mapping dispatcher: pads / dials / buttons drive store actions
     // on every screen once mappings exist.
     startMappingDispatcher();
+    if (!nativePadUnsub) {
+      nativePadUnsub = startNativePadNotes((cb) => midiManager.subscribe(cb));
+    }
     // microKONTROL Native-KORG-mode LED sync (no-op if device isn't in Native
     // mode or output denies SysEx — see microkontrol-led-patch.md).
     void import("../midi/microKontrolLedSync").then((m) =>
@@ -267,10 +276,12 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
         // If this incoming note is mapped to a control (pad), don't also
         // treat it as a chord root — the dispatcher handled it.
         if (msg.type === "noteOn") {
+          if (areNativePadNotesActive() && isNativePadNoteNumber(msg.note)) return;
           const { midiMappings } = useChorditStore.getState();
           if (findMatchingControl(msg, midiMappings)) return;
           if (msg.velocity > 0) playRoot(msg.note, msg.velocity);
         } else if (msg.type === "noteOff") {
+          if (areNativePadNotesActive() && isNativePadNoteNumber(msg.note)) return;
           const { midiMappings } = useChorditStore.getState();
           if (findMatchingControl({ ...msg, type: "noteOn", velocity: 1 }, midiMappings)) return;
           releaseRoot(msg.note);
@@ -282,6 +293,8 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
       if (hardwareUsers === 0) {
         hardwareUnsub?.();
         hardwareUnsub = null;
+        nativePadUnsub?.();
+        nativePadUnsub = null;
       }
     };
   }, [options.hardwareInput, playRoot, releaseRoot]);

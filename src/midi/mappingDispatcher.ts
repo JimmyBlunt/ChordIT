@@ -10,6 +10,7 @@ import {
 } from "../progressions/progressionTypes";
 import { progressionPresets } from "../progressions/progressionPresets";
 import { PATTERNS } from "../performance/patterns";
+import { areNativePadNotesActive, isNativePadNoteNumber, showLcd } from "./microKontrolNative";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
@@ -68,6 +69,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
     case "chord.Sus": {
       if (!isTrigger(msg)) return;
       s.setChordType(id.split(".")[1] as ChordType);
+      showLcd(`CHORD ${id.split(".")[1].toUpperCase()}`);
       return;
     }
     case "ext.6":
@@ -75,27 +77,36 @@ function dispatch(id: ControlId, msg: MidiMessage) {
     case "ext.M7":
     case "ext.9": {
       if (!isTrigger(msg)) return;
-      s.toggleExtension(id.split(".")[1] as ChordExtension);
+      const ext = id.split(".")[1] as ChordExtension;
+      s.toggleExtension(ext);
+      const on = useChorditStore.getState().activeExtensions.includes(ext);
+      showLcd(`EXT ${ext.toUpperCase()}`, on ? "ON" : "OFF");
       return;
     }
     case "dial.perform": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, dir));
+      showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
       return;
     }
     case "dial.voicing": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, dir));
+      showLcd("VOICING", useChorditStore.getState().voicingMode.toUpperCase());
       return;
     }
     case "dial.key": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       // Per ChordIT spec: CC#51 cycles Key only when Keylock (keyMode) is enabled.
-      if (!s.keyModeEnabled) return;
+      if (!s.keyModeEnabled) {
+        showLcd("KEY LOCK", "OFF");
+        return;
+      }
       s.setSelectedKey(cycle(ALL_KEYS, s.selectedKey, dir));
+      showLcd("KEY", useChorditStore.getState().selectedKey);
       return;
     }
     case "dial.loopLen": {
@@ -103,18 +114,21 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (!dir) return;
       const next = Math.min(16, Math.max(4, s.loopLength + dir));
       s.setLoopLength(next);
+      showLcd("LOOP LEN", `${next}`);
       return;
     }
     case "dial.style": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, dir));
+      showLcd("STYLE", useChorditStore.getState().harmonicStyle.toUpperCase());
       return;
     }
     case "dial.mood": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, dir));
+      showLcd("MOOD", String(useChorditStore.getState().moodTarget).toUpperCase());
       return;
     }
     case "dial.progression": {
@@ -123,7 +137,9 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const ids = progressionPresets.map((p) => p.id);
       if (ids.length === 0) return;
       const cur = s.activeProgressionPresetId ?? ids[0];
-      s.setActiveProgressionPresetId(cycle(ids, cur, dir));
+      const nextId = cycle(ids, cur, dir);
+      s.setActiveProgressionPresetId(nextId);
+      showLcd("PROG", nextId.slice(0, 8).toUpperCase());
       return;
     }
     case "slider.rhythm": {
@@ -140,6 +156,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (idx !== s.performanceParams.patternIndex) {
         s.setPerformanceParams({ patternIndex: idx });
       }
+      showLcd("RHYTHM", `PAT ${idx + 1}`);
       // Remember the last raw value so dialDirection stays consistent if reused.
       lastCc.set(id, value);
       return;
@@ -166,6 +183,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
         });
       }
       s.setVoicingShiftValue(target);
+      showLcd("V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
       lastCc.set(id, value);
       return;
     }
@@ -233,6 +251,7 @@ export function startMappingDispatcher(): () => void {
   if (started) return () => {};
   started = true;
   unsub = midiManager.subscribe((msg) => {
+    if (areNativePadNotesActive() && msg.type === "noteOn" && isNativePadNoteNumber(msg.note)) return;
     const { midiMappings } = useChorditStore.getState();
     const id = findMatchingControl(msg, midiMappings);
     if (id) dispatch(id, msg);

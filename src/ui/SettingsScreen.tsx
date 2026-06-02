@@ -7,7 +7,7 @@ import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
 import { startMicroKontrolLedSync, runNativeModeInit, releaseNativeMode, pushAllLeds } from "@/midi/microKontrolLedSync";
-import { startNativeInput, startNativePadNotes, showLcd } from "@/midi/microKontrolNative";
+import { startNativeInput, showLcd } from "@/midi/microKontrolNative";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -46,8 +46,16 @@ function isValidMapping(value: unknown): value is MidiMapping {
   );
 }
 
-function isMicroKontrolPortA(name: string) {
-  return /microkontrol/i.test(name) && /port\s*a/i.test(name);
+function isMicroKontrolCtrlOutput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
+}
+
+function isMicroKontrolPortBInput(name: string) {
+  return (/microkontrol/i.test(name) && /port\s*b/i.test(name)) || /^port\s*b$/i.test(name.trim());
+}
+
+function isMicroKontrolCtrlInput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
 }
 
 function isMicroKontrol(name: string) {
@@ -147,10 +155,16 @@ export function SettingsScreen() {
     if (!handle) return;
     const savedIds =
       s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [];
-    const validIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
+    const savedValidIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
+    const nativeInputs = handle.inputs.filter((i) => isMicroKontrolPortBInput(i.name) || isMicroKontrolCtrlInput(i.name));
+    const validIds = [...savedValidIds];
+    for (const input of nativeInputs) {
+      if (!validIds.includes(input.id)) validIds.push(input.id);
+    }
     if (validIds.length > 0) {
       midiManager.selectInputs(validIds);
       setInputIds(validIds);
+      s.setMidiInputIds(validIds);
       s.setMidiStatus(true, s.midiOutputConnected);
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
@@ -161,20 +175,20 @@ export function SettingsScreen() {
       setBridgeActive(true);
       s.setMidiStatus(s.midiInputConnected, true);
     }
-    const ledOutput = handle.outputs.find((o) => isMicroKontrolPortA(o.name)) ?? null;
+    const ledOutput = handle.outputs.find((o) => isMicroKontrolCtrlOutput(o.name)) ?? null;
     let stopLedSync: (() => void) | null = null;
     let stopNativeInput: (() => void) | null = null;
-    let stopPadNotes: (() => void) | null = null;
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
+      if (!midiBridge.hasTarget()) {
+        midiBridge.setTarget(handle.midiOut, `SysEx → ${ledOutput.name}`);
+      }
       // Listen for native-mode pad/encoder/slider SysEx from CTRL input
       stopNativeInput = startNativeInput((cb) => handle.onSysEx(cb));
-      // Pads im Native Mode senden Notes 36..51 über Port B (siehe Python-Ref).
-      stopPadNotes = startNativePadNotes((cb) => midiManager.subscribe(cb));
       // Native init → start LED subscription → greeting on LCD
-      void runNativeModeInit(0).then(async () => {
-        stopLedSync = await startMicroKontrolLedSync(0);
+      void startMicroKontrolLedSync(0).then((stop) => {
+        stopLedSync = stop;
         showLcd("CHORDIT", "READY", "green");
       });
     }
@@ -190,7 +204,6 @@ export function SettingsScreen() {
       unsub();
       stopLedSync?.();
       stopNativeInput?.();
-      stopPadNotes?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);

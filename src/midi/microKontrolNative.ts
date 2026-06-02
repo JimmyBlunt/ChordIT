@@ -206,6 +206,7 @@ export function dispatchNativeEvent(ev: NativeEvent) {
 // ── Public entry points ───────────────────────────────────────────────────
 let nativeUnsub: (() => void) | null = null;
 let padNoteUnsub: (() => void) | null = null;
+let padNotesActive = false;
 
 export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () => void) {
   if (nativeUnsub) nativeUnsub();
@@ -226,13 +227,23 @@ export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () =
  * in Pad-Events.
  */
 type MidiMsgLike = { type: string; note?: number; velocity?: number };
+
+export function isNativePadNoteNumber(note: number | undefined): note is number {
+  return note !== undefined && note >= 36 && note <= 51;
+}
+
+export function areNativePadNotesActive(): boolean {
+  return padNotesActive;
+}
+
 export function startNativePadNotes(
   subscribe: (cb: (msg: MidiMsgLike) => void) => () => void,
 ) {
   if (padNoteUnsub) padNoteUnsub();
+  padNotesActive = true;
   padNoteUnsub = subscribe((msg) => {
     const note = msg.note;
-    if (note === undefined || note < 36 || note > 51) return;
+    if (!isNativePadNoteNumber(note)) return;
     const padIndex = note - 36; // 0..15
     if (msg.type === "noteOn" && (msg.velocity ?? 0) > 0) {
       handlePad(padIndex, msg.velocity ?? 127);
@@ -241,6 +252,7 @@ export function startNativePadNotes(
   return () => {
     padNoteUnsub?.();
     padNoteUnsub = null;
+    padNotesActive = false;
   };
 }
 

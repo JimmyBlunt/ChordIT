@@ -41,6 +41,18 @@ function attachInput() {
   });
 }
 
+function isMicroKontrolCtrlOutput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
+}
+
+function isMicroKontrolPortBInput(name: string) {
+  return (/microkontrol/i.test(name) && /port\s*b/i.test(name)) || /^port\s*b$/i.test(name.trim());
+}
+
+function isMicroKontrolCtrlInput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
+}
+
 export const midiManager = {
   init(): Promise<WebMidiHandle | null> {
     if (handle) return Promise.resolve(handle);
@@ -62,8 +74,13 @@ export const midiManager = {
                 : s.midiInputId && h.inputs.some((i) => i.id === s.midiInputId)
                 ? [s.midiInputId]
                 : [];
+            const nativeInputs = h.inputs.filter((i) => isMicroKontrolPortBInput(i.name) || isMicroKontrolCtrlInput(i.name));
+            for (const input of nativeInputs) {
+              if (!ids.includes(input.id)) ids.push(input.id);
+            }
             if (ids.length > 0) {
               h.selectInputs(ids);
+              s.setMidiInputIds(ids);
               s.setMidiStatus(true, s.midiOutputConnected);
             }
             if (s.midiOutputId && h.outputs.some((o) => o.id === s.midiOutputId)) {
@@ -71,6 +88,15 @@ export const midiManager = {
               const outputName = h.outputs.find((o) => o.id === s.midiOutputId)?.name ?? s.midiOutputId;
               midiBridge.setTarget(h.midiOut, outputName);
               s.setMidiStatus(s.midiInputConnected, true);
+            }
+            const ctrlOutput = h.outputs.find((o) => isMicroKontrolCtrlOutput(o.name)) ?? null;
+            if (ctrlOutput) {
+              h.selectSysExOutput(ctrlOutput.id);
+              if (!midiBridge.hasTarget()) {
+                midiBridge.setTarget(h.midiOut, `SysEx → ${ctrlOutput.name}`);
+              }
+              void import("./microKontrolNative").then((m) => m.startNativeInput((cb) => h.onSysEx(cb)));
+              void import("./microKontrolLedSync").then((m) => m.startMicroKontrolLedSync(0));
             }
           } catch {
             // store may not be hydrated yet; Settings will wire devices manually.
@@ -102,6 +128,9 @@ export const midiManager = {
   },
   selectOutput(id: string | null) {
     handle?.selectOutput(id);
+  },
+  selectSysExOutput(id: string | null) {
+    handle?.selectSysExOutput(id);
   },
   subscribe(cb: Sub): () => void {
     messageSubs.add(cb);
