@@ -244,6 +244,7 @@ export function startMappingDispatcher(): () => void {
   if (started) return () => {};
   started = true;
   unsub = midiManager.subscribe((msg) => {
+    if (areNativePadNotesActive() && msg.type === "noteOn" && isNativePadNoteNumber(msg.note)) return;
     const { midiMappings } = useChorditStore.getState();
     const id = findMatchingControl(msg, midiMappings);
     if (id) dispatch(id, msg);
