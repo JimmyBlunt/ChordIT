@@ -148,10 +148,18 @@ export function SettingsScreen() {
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
       midiManager.selectOutput(s.midiOutputId);
-      midiBridge.setTarget(handle.midiOut);
+      const outputName = handle.outputs.find((o) => o.id === s.midiOutputId)?.name ?? s.midiOutputId;
+      midiBridge.setTarget(handle.midiOut, outputName);
       setOutputId(s.midiOutputId);
       setBridgeActive(true);
       s.setMidiStatus(s.midiInputConnected, true);
+    }
+    const ledOutput = handle.outputs.find((o) => isMicroKontrolPortA(o.name)) ?? null;
+    if (ledOutput) {
+      handle.selectSysExOutput(ledOutput.id);
+      setLedOutputId(ledOutput.id);
+      midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+      pushAllLeds(0);
     }
     const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
