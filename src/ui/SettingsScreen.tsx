@@ -162,10 +162,18 @@ export function SettingsScreen() {
       s.setMidiStatus(s.midiInputConnected, true);
     }
     const ledOutput = handle.outputs.find((o) => isMicroKontrolPortA(o.name)) ?? null;
+    let stopLedSync: (() => void) | null = null;
+    let stopNativeInput: (() => void) | null = null;
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
-      void runNativeModeInit(0).then(() => pushAllLeds(0));
+      // Listen for native-mode pad/encoder/slider SysEx from CTRL input
+      stopNativeInput = startNativeInput((cb) => handle.onSysEx(cb));
+      // Native init → start LED subscription → greeting on LCD
+      void runNativeModeInit(0).then(async () => {
+        stopLedSync = await startMicroKontrolLedSync(0);
+        showLcd("CHORDIT", "READY", "green");
+      });
     }
     const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
@@ -175,7 +183,11 @@ export function SettingsScreen() {
         mapper.save();
       }
     });
-    return unsub;
+    return () => {
+      unsub();
+      stopLedSync?.();
+      stopNativeInput?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);
 
