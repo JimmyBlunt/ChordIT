@@ -96,6 +96,7 @@ export type Actions = {
   setVoicingMode: (m: VoicingMode) => void;
   setSplitKey: (n: number) => void;
   setOctaveBase: (n: number) => void;
+  setVoicingShiftValue: (n: number) => void;
   toggleKeyMode: () => void;
   setSelectedKey: (k: KeyName) => void;
   setMidiMappings: (m: MidiMapping[]) => void;
