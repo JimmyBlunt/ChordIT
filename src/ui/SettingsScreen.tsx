@@ -244,7 +244,8 @@ export function SettingsScreen() {
       s.setMidiDeviceIds(nextInputIds[0] ?? "", nextOutputId);
       if (handle) {
         handle.selectOutput(nextOutputId || null);
-        midiBridge.setTarget(nextOutputId ? handle.midiOut : null);
+        const outputName = handle.outputs.find((o) => o.id === nextOutputId)?.name ?? nextOutputId;
+        midiBridge.setTarget(nextOutputId ? handle.midiOut : null, outputName);
         setBridgeActive(!!nextOutputId);
       }
 
@@ -433,7 +434,8 @@ export function SettingsScreen() {
                   const id = e.target.value;
                   setOutputId(id);
                   handle.selectOutput(id || null);
-                  midiBridge.setTarget(id ? handle.midiOut : null);
+                  const outputName = handle.outputs.find((o) => o.id === id)?.name ?? id;
+                  midiBridge.setTarget(id ? handle.midiOut : null, outputName);
                   setBridgeActive(!!id);
                   s.setMidiStatus(s.midiInputConnected, !!id);
                   s.setMidiDeviceIds(s.midiInputId, id);
