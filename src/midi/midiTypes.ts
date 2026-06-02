@@ -80,8 +80,9 @@ export const ALL_CONTROL_IDS: ControlId[] = [
  * the Korg Editor Librarian:
  * - Encoders: Port B, channels 1..8, CC#18
  * - Sliders:  Port B, channels 1..8, CC#7
- * - Pad B 9..16: Port B, channels 1..8, CC#16
- * - Pad A 1..8:  Port B, channel 9, individual CCs
+ * - Native Init remaps pads to notes 36..51 on Port B.
+ *   ChordIT uses Pad 9..16 = notes 44..51 for chord/extension selection.
+ * - Pad A 1..8:  Port B, channel 9, individual CCs in the Librarian scene.
  */
 export const DEFAULT_MIDI_MAPPINGS: MidiMapping[] = [
   // ── Encoders 1..7 (CC#18, channels 1..7) ─────────────────────────────
@@ -95,15 +96,15 @@ export const DEFAULT_MIDI_MAPPINGS: MidiMapping[] = [
   // ── Sliders 1..2 (CC#7, channels 1..2) ───────────────────────────────
   { controlId: "slider.rhythm", inputType: "cc", channel: 0, number: 7 },
   { controlId: "slider.voicingShift", inputType: "cc", channel: 1, number: 7 },
-  // ── Pad B / Pads 9..16 (CC#16, channels 1..8) ────────────────────────
-  { controlId: "chord.Dim", inputType: "cc", channel: 0, number: 16 },
-  { controlId: "chord.Min", inputType: "cc", channel: 1, number: 16 },
-  { controlId: "chord.Maj", inputType: "cc", channel: 2, number: 16 },
-  { controlId: "chord.Sus", inputType: "cc", channel: 3, number: 16 },
-  { controlId: "ext.6", inputType: "cc", channel: 4, number: 16 },
-  { controlId: "ext.m7", inputType: "cc", channel: 5, number: 16 },
-  { controlId: "ext.M7", inputType: "cc", channel: 6, number: 16 },
-  { controlId: "ext.9", inputType: "cc", channel: 7, number: 16 },
+  // ── Native Init Pads 9..16 (notes 44..51, Port B, channel 1) ───────────
+  { controlId: "chord.Dim", inputType: "note", channel: 0, number: 44 },
+  { controlId: "chord.Min", inputType: "note", channel: 0, number: 45 },
+  { controlId: "chord.Maj", inputType: "note", channel: 0, number: 46 },
+  { controlId: "chord.Sus", inputType: "note", channel: 0, number: 47 },
+  { controlId: "ext.6", inputType: "note", channel: 0, number: 48 },
+  { controlId: "ext.m7", inputType: "note", channel: 0, number: 49 },
+  { controlId: "ext.M7", inputType: "note", channel: 0, number: 50 },
+  { controlId: "ext.9", inputType: "note", channel: 0, number: 51 },
   // ── Pad A shortcuts (channel 9 in the Librarian = zero-based channel 8) ─
   { controlId: "toggle.perform", inputType: "cc", channel: 8, number: 47 },
   { controlId: "toggle.voicing", inputType: "cc", channel: 8, number: 46 },
