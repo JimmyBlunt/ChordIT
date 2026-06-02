@@ -77,7 +77,14 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
   const engineRef = useRef(getSharedEngine(store.performanceParams.bpm));
 
   useEffect(() => {
-    void useChorditStore.persist.rehydrate();
+    void (async () => {
+      await Promise.resolve(useChorditStore.persist.rehydrate());
+      const st = useChorditStore.getState();
+      if (!st.midiMappings || st.midiMappings.length === 0) {
+        const { DEFAULT_MIDI_MAPPINGS } = await import("../midi/midiTypes");
+        useChorditStore.getState().setMidiMappings(DEFAULT_MIDI_MAPPINGS);
+      }
+    })();
   }, []);
 
   // Drive the mock clock in real time so arp/pattern modes work in the live UI.

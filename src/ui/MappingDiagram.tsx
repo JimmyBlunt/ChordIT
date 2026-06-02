@@ -18,14 +18,21 @@ const LAYOUT: Record<ControlId, Pos> = {
   "dial.voicing": { x: 310, y: 50, r: 22, label: "VOICING", kind: "rot" },
   "dial.key": { x: 370, y: 50, r: 22, label: "KEY", kind: "rot" },
   "dial.loopLen": { x: 370, y: 130, r: 22, label: "LOOP LEN", kind: "rot" },
+  "dial.style": { x: 250, y: 130, r: 18, label: "STYLE", kind: "rot" },
+  "dial.mood": { x: 310, y: 130, r: 18, label: "MOOD", kind: "rot" },
+  "dial.progression": { x: 250, y: 175, r: 16, label: "PROG", kind: "rot" },
 
-  "toggle.perform": { x: 250, y: 110, r: 12, label: "T·P", kind: "btn" },
-  "toggle.voicing": { x: 290, y: 110, r: 12, label: "T·V", kind: "btn" },
-  "toggle.key": { x: 330, y: 110, r: 12, label: "T·K", kind: "btn" },
+  "slider.rhythm": { x: 50, y: 145, r: 12, label: "RHY", kind: "rot" },
+  "slider.voicingShift": { x: 95, y: 145, r: 12, label: "V·SH", kind: "rot" },
 
-  "button.loop": { x: 260, y: 175, r: 18, label: "LOOP", kind: "btn" },
-  "button.record": { x: 310, y: 175, r: 18, label: "REC", kind: "btn" },
-  "button.propose": { x: 360, y: 175, r: 18, label: "PROP", kind: "btn" },
+  "toggle.perform": { x: 140, y: 145, r: 10, label: "T·P", kind: "btn" },
+  "toggle.voicing": { x: 170, y: 145, r: 10, label: "T·V", kind: "btn" },
+  "toggle.key": { x: 200, y: 145, r: 10, label: "T·K", kind: "btn" },
+
+  "button.loop": { x: 50, y: 180, r: 14, label: "LOOP", kind: "btn" },
+  "button.record": { x: 90, y: 180, r: 14, label: "REC", kind: "btn" },
+  "button.mode": { x: 130, y: 180, r: 14, label: "MODE", kind: "btn" },
+  "button.propose": { x: 170, y: 180, r: 14, label: "PROP", kind: "btn" },
 };
 
 export function MappingDiagram({

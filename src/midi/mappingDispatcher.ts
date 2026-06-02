@@ -3,6 +3,13 @@ import { useChorditStore, PERFORMANCE_MODES } from "../app/store";
 import { ALL_KEYS } from "../key/scales";
 import type { ChordExtension, ChordType, VoicingMode } from "../chord/chordTypes";
 import type { ControlId, MidiMapping, MidiMessage } from "./midiTypes";
+import {
+  ALL_HARMONIC_MODES,
+  ALL_HARMONIC_STYLES,
+  ALL_MOOD_TARGETS,
+} from "../progressions/progressionTypes";
+import { progressionPresets } from "../progressions/progressionPresets";
+import { PATTERNS } from "../performance/patterns";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
@@ -94,6 +101,53 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (!dir) return;
       const next = Math.min(16, Math.max(4, s.loopLength + dir));
       s.setLoopLength(next);
+      return;
+    }
+    case "dial.style": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, dir));
+      return;
+    }
+    case "dial.mood": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, dir));
+      return;
+    }
+    case "dial.progression": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      const ids = progressionPresets.map((p) => p.id);
+      if (ids.length === 0) return;
+      const cur = s.activeProgressionPresetId ?? ids[0];
+      s.setActiveProgressionPresetId(cycle(ids, cur, dir));
+      return;
+    }
+    case "slider.rhythm": {
+      // Rhythm/Groove slider: cycle the active pattern index on direction change.
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      if (PATTERNS.length === 0) return;
+      const cur = s.performanceParams.patternIndex;
+      const next = (cur + dir + PATTERNS.length) % PATTERNS.length;
+      s.setPerformanceParams({ patternIndex: next });
+      return;
+    }
+    case "slider.voicingShift": {
+      // Voicing shift slider: each direction step shifts the split-key/octave-base by one semitone.
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      if (s.voicingMode === "Octave") {
+        s.setOctaveBase(Math.min(96, Math.max(24, s.octaveBase + dir)));
+      } else {
+        s.setSplitKey(Math.min(96, Math.max(24, s.splitKey + dir)));
+      }
+      return;
+    }
+    case "button.mode": {
+      if (!isTrigger(msg)) return;
+      s.setHarmonicMode(cycle(ALL_HARMONIC_MODES, s.harmonicMode, 1));
       return;
     }
     case "toggle.perform": {
