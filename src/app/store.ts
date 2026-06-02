@@ -145,7 +145,7 @@ export const useChorditStore = create<State & Actions>()(
       keyModeEnabled: false,
       selectedKey: "C",
 
-      midiMappings: [],
+      midiMappings: DEFAULT_MIDI_MAPPINGS,
       midiInputConnected: false,
       midiOutputConnected: false,
       midiInputId: "",
