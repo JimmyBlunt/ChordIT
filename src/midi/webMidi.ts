@@ -38,8 +38,17 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
   if (typeof navigator === "undefined" || !("requestMIDIAccess" in navigator)) {
     return null;
   }
-  // @ts-expect-error - Web MIDI types live in lib.dom in browsers that support it
-  const access: AccessLike = await navigator.requestMIDIAccess({ sysex: false });
+  // SysEx is required to drive Korg microKONTROL pad LEDs in Native KORG mode.
+  // Browsers prompt the user once per origin. If the user denies SysEx we
+  // silently fall back to a non-SysEx session — note events still work.
+  let access: AccessLike;
+  try {
+    // @ts-expect-error - Web MIDI types live in lib.dom in browsers that support it
+    access = await navigator.requestMIDIAccess({ sysex: true });
+  } catch {
+    // @ts-expect-error - retry without sysex on denial
+    access = await navigator.requestMIDIAccess({ sysex: false });
+  }
 
   const listeners: Array<(m: MidiMessage) => void> = [];
   let currentOut: MIDIOutputLike | null = null;
@@ -61,6 +70,14 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
       const status =
         (event.type === "noteOn" ? 0x90 : 0x80) | (event.channel & 0x0f);
       currentOut.send([status, event.note & 0x7f, event.velocity & 0x7f]);
+    },
+    sendSysEx(data: number[]) {
+      if (!currentOut) return;
+      try {
+        currentOut.send(data);
+      } catch {
+        // Browser refused SysEx (permission denied) — silently drop.
+      }
     },
   };
 
