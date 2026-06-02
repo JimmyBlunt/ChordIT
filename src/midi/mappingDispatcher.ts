@@ -93,6 +93,8 @@ function dispatch(id: ControlId, msg: MidiMessage) {
     case "dial.key": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
+      // Per ChordIT spec: CC#51 cycles Key only when Keylock (keyMode) is enabled.
+      if (!s.keyModeEnabled) return;
       s.setSelectedKey(cycle(ALL_KEYS, s.selectedKey, dir));
       return;
     }
