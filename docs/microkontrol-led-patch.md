@@ -66,17 +66,46 @@ Mit `EXIT` das Setting-Menü verlassen (Werte werden automatisch gespeichert).
 
 ## Schritt 2 — SysEx im Browser erlauben
 
-Beim Öffnen von ChordIT fragt der Browser
-**„Erlaubt die Seite, SysEx-Nachrichten zu senden?"** → **Zulassen**.
+> **Wichtig — Chrome zeigt den Prompt nur EINMAL pro Origin.** Wenn du
+> ChordIT schon einmal geöffnet hast und die Berechtigung damals erteilt
+> (oder abgelehnt) hast, kommt **nie wieder ein Dialog**. Chrome merkt sich
+> die Entscheidung dauerhaft als Site-Setting.
 
-Ohne SysEx-Erlaubnis kann ChordIT weder den Native-Mode-Request noch die
-LED-Updates senden (Web-MIDI-Spec).
+### So prüfst du den aktuellen Stand (Chrome)
 
-Falls du das versehentlich abgelehnt hast:
-- Chrome: Schloss-Symbol → „Website-Einstellungen" → MIDI → *Zulassen*.
-- Firefox: about:preferences#privacy → Berechtigungen → MIDI.
+Klicke links neben der URL auf das **Schloss-Symbol** → es öffnet sich ein
+Popover mit allen Berechtigungen dieser Seite. Suche dort den Eintrag:
 
-Danach Seite einmal neu laden.
+**„MIDI-Gerätesteuerung & -Neuprogrammierung"**
+
+- Steht dort **„Zulassen"** (Toggle blau/an) → ✅ alles korrekt, SysEx ist
+  erteilt, ChordIT kann die Pad-LEDs ansteuern. **Du musst nichts tun.**
+- Steht dort **„Blockieren"** oder der Eintrag fehlt → Toggle auf
+  *Zulassen* schalten **und einmal die Seite neu laden** (F5).
+
+> Hinweis zur Chrome-Terminologie: „MIDI-Gerätesteuerung & -Neuprogrammierung"
+> ist Chromes deutsche Übersetzung für **SysEx-MIDI-Zugriff**. Einen separaten
+> Eintrag nur „MIDI" (ohne SysEx) gibt es in aktuellen Chrome-Versionen nicht
+> mehr — beides ist in dieser einen Berechtigung zusammengefasst.
+
+### Falls du den Prompt nie gesehen hast
+
+Das ist **normal** und meistens kein Fehler. Drei mögliche Ursachen:
+
+1. **Du hast schon mal „Zulassen" geklickt** (z. B. bei einem früheren Besuch)
+   → Chrome zeigt den Dialog nicht erneut. Prüfe per Schloss-Symbol wie oben.
+2. **Du hast schon mal „Blockieren" geklickt** → Chrome zeigt den Dialog
+   ebenfalls nicht erneut, blockiert aber stumm. Im Schloss-Popover auf
+   *Zulassen* umstellen und neu laden.
+3. **Die Seite läuft in einem iFrame ohne MIDI-Permission-Policy** (z. B. in
+   manchen Editor-Previews). Öffne ChordIT in einem eigenen Tab über die
+   Preview-URL — dort fragt Chrome korrekt nach.
+
+### Firefox / Safari
+
+- Firefox: `about:preferences#privacy` → Berechtigungen → MIDI.
+- Safari: Web MIDI mit SysEx ist erst ab Safari 18 (macOS 15) verfügbar;
+  vorher funktionieren die LEDs nicht — bitte Chrome oder Edge verwenden.
 
 ---
 
