@@ -149,6 +149,13 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
     selectSysExOutput(id) {
       currentSysExOut = id ? access.outputs.get(id) ?? null : null;
     },
+    onSysEx(cb) {
+      sysexListeners.push(cb);
+      return () => {
+        const i = sysexListeners.indexOf(cb);
+        if (i >= 0) sysexListeners.splice(i, 1);
+      };
+    },
     midiIn,
     midiOut,
   };
