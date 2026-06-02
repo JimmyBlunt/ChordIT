@@ -10,6 +10,7 @@ import {
 } from "../progressions/progressionTypes";
 import { progressionPresets } from "../progressions/progressionPresets";
 import { PATTERNS } from "../performance/patterns";
+import { areNativePadNotesActive, isNativePadNoteNumber, showLcd } from "./microKontrolNative";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
@@ -68,6 +69,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
     case "chord.Sus": {
       if (!isTrigger(msg)) return;
       s.setChordType(id.split(".")[1] as ChordType);
+      showLcd(`CHORD ${id.split(".")[1].toUpperCase()}`);
       return;
     }
     case "ext.6":
@@ -75,27 +77,36 @@ function dispatch(id: ControlId, msg: MidiMessage) {
     case "ext.M7":
     case "ext.9": {
       if (!isTrigger(msg)) return;
-      s.toggleExtension(id.split(".")[1] as ChordExtension);
+      const ext = id.split(".")[1] as ChordExtension;
+      s.toggleExtension(ext);
+      const on = useChorditStore.getState().activeExtensions.includes(ext);
+      showLcd(`EXT ${ext.toUpperCase()}`, on ? "ON" : "OFF");
       return;
     }
     case "dial.perform": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, dir));
+      showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
       return;
     }
     case "dial.voicing": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, dir));
+      showLcd("VOICING", useChorditStore.getState().voicingMode.toUpperCase());
       return;
     }
     case "dial.key": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       // Per ChordIT spec: CC#51 cycles Key only when Keylock (keyMode) is enabled.
-      if (!s.keyModeEnabled) return;
+      if (!s.keyModeEnabled) {
+        showLcd("KEY LOCK", "OFF");
+        return;
+      }
       s.setSelectedKey(cycle(ALL_KEYS, s.selectedKey, dir));
+      showLcd("KEY", useChorditStore.getState().selectedKey);
       return;
     }
     case "dial.loopLen": {
