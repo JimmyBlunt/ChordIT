@@ -204,7 +204,7 @@ export function SettingsScreen() {
     setConfigMessage("ChordIT microKONTROL Scene-Mappings geladen — passend zu deinem Librarian-Screenshot.");
   };
 
-  const sendNativeModeAndLedSnapshot = (targetId = ledOutputId) => {
+  const sendNativeModeAndLedSnapshot = async (targetId = ledOutputId) => {
     if (!targetId) {
       setLedMessage("Kein SysEx-Output gewählt.");
       return;
@@ -212,9 +212,19 @@ export function SettingsScreen() {
     handle?.selectSysExOutput(targetId);
     const name = handle?.outputs.find((o) => o.id === targetId)?.name ?? "Output";
     if (handle && !midiBridge.hasTarget()) midiBridge.setTarget(handle.midiOut, `SysEx → ${name}`);
-    const sent = midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+    setLedMessage(`Sende Native-Mode-Init an ${name}…`);
+    const sent = await runNativeModeInit(0);
     pushAllLeds(0);
-    setLedMessage(sent ? `Gesendet an ${name}.` : `Nicht gesendet — ${name} ist nicht erreichbar oder SysEx ist blockiert.`);
+    setLedMessage(
+      sent
+        ? `Native Mode + 4-Packet Init + LED-Snapshot an ${name} gesendet.`
+        : `Nicht gesendet — ${name} ist nicht erreichbar oder SysEx ist blockiert.`,
+    );
+  };
+
+  const releaseMicroKontrol = () => {
+    const ok = releaseNativeMode(0);
+    setLedMessage(ok ? "Native Mode beendet — Controller zurück im normalen MIDI-Mode." : "Konnte Native-Off nicht senden.");
   };
 
   const exportConfig = () => {
