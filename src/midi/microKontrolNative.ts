@@ -203,8 +203,9 @@ export function dispatchNativeEvent(ev: NativeEvent) {
   else if (ev.kind === "slider") handleSlider(ev.index, ev.value);
 }
 
-// ── Public entry point ────────────────────────────────────────────────────
+// ── Public entry points ───────────────────────────────────────────────────
 let nativeUnsub: (() => void) | null = null;
+let padNoteUnsub: (() => void) | null = null;
 
 export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () => void) {
   if (nativeUnsub) nativeUnsub();
@@ -217,3 +218,29 @@ export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () =
     nativeUnsub = null;
   };
 }
+
+/**
+ * Im funktionierenden Python-Setup (microkontrol_toggle_v3.py) senden die Pads
+ * im Native-Mode standardmäßig MIDI-Notes 36..51 über Port B (NICHT als SysEx).
+ * Diese Funktion abonniert den normalen MIDI-Stream und übersetzt diese Notes
+ * in Pad-Events.
+ */
+type MidiMsgLike = { type: string; note?: number; velocity?: number };
+export function startNativePadNotes(
+  subscribe: (cb: (msg: MidiMsgLike) => void) => () => void,
+) {
+  if (padNoteUnsub) padNoteUnsub();
+  padNoteUnsub = subscribe((msg) => {
+    const note = msg.note;
+    if (note === undefined || note < 36 || note > 51) return;
+    const padIndex = note - 36; // 0..15
+    if (msg.type === "noteOn" && (msg.velocity ?? 0) > 0) {
+      handlePad(padIndex, msg.velocity ?? 127);
+    }
+  });
+  return () => {
+    padNoteUnsub?.();
+    padNoteUnsub = null;
+  };
+}
+
