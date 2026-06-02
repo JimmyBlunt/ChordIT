@@ -6,8 +6,7 @@ import { ALL_CONTROL_IDS, DEFAULT_MIDI_MAPPINGS, type ControlId, type MidiMappin
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
-import { pushAllLeds } from "@/midi/microKontrolLedSync";
-import { nativeModeInRequestSysex } from "@/midi/microKontrolLeds";
+import { pushAllLeds, runNativeModeInit, releaseNativeMode } from "@/midi/microKontrolLedSync";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
