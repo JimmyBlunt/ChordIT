@@ -50,6 +50,8 @@ export type State = {
   voicingMode: VoicingMode;
   splitKey: number;
   octaveBase: number;
+  /** Visual voicing-shift slider position (-6..+6). Snaps back to 0 on release. */
+  voicingShiftValue: number;
 
   keyModeEnabled: boolean;
   selectedKey: KeyName;
