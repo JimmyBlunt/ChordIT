@@ -111,7 +111,9 @@ Das ist **normal** und meistens kein Fehler. Drei mögliche Ursachen:
 
 ## Schritt 3 — microKONTROL als MIDI-Output in ChordIT wählen
 
-Settings → MIDI Output → `microKONTROL 1 PORT A` (oder wie das Gerät bei dir heißt).
+Settings → **microKONTROL LED / SYS EX OUTPUT** → `microKONTROL PORT A`
+(oder wie das Gerät bei dir heißt). Der normale **MIDI Output** darf weiterhin
+dein Soundgerät sein, z. B. ROLI.
 
 In dem Moment, in dem ChordIT den Output aktiviert, sendet es **automatisch**:
 
@@ -160,6 +162,26 @@ Beispiel — Pad 11 (Maj) AUS:           `F0 42 40 6E 00 01 0A 00 F7`
 
 ChordIT diffed den Zustand im Store und sendet nur LEDs, die sich tatsächlich
 geändert haben — kein SysEx-Flood.
+
+## Korg Editor Librarian Scene
+
+Ja: Du kannst im Librarian eine eigene **ChordIT-Scene** bauen. Diese Scene
+setzt aber nur, **welche MIDI-CCs/Channels die Pads, Regler und Slider senden**.
+Sie ersetzt nicht den Native-KORG-Mode für Host-gesteuerte Pad-LEDs.
+
+ChordIT erwartet für die Scene aktuell die Struktur aus deinem Screenshot:
+
+| Element | Librarian-Wert | ChordIT-Funktion |
+|---|---|---|
+| Encoder 1–7 | Port B · Ch 1–7 · CC #18 | Performance, Voicing, Key, Loop Len, Style, Mood, Progression |
+| Slider 1 | Port B · Ch 1 · CC #7 | Rhythm Pattern |
+| Slider 2 | Port B · Ch 2 · CC #7 | Voicing Shift |
+| Pad 9–12 | Port B · Ch 1–4 · CC #16 | Dim, Min, Maj, Sus |
+| Pad 13–16 | Port B · Ch 5–8 · CC #16 | 6, m7, M7, 9 |
+| Pad 1–7 | Port B · Ch 9 · CC #47, #46, #45, #44, #85, #86, #87 | Toggles / Propose / Record / Loop / Mode |
+
+In ChordIT Settings kannst du dafür **LOAD CHORDIT SCENE** klicken. Danach
+passen die Mappings zu dieser Librarian-Scene.
 
 ---
 
