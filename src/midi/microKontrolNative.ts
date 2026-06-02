@@ -334,3 +334,47 @@ export function startNativePadNotes(
   };
 }
 
+// ── Persistent Sub-LCD labels (Sub-LCD 1..8 over the 8 encoder columns) ──
+function fit8(s: string): string {
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+/**
+ * Sub-LCD 1..8 = Encoder/Slider column labels. Sub-LCDs sind zweizeilig
+ * (8 Zeichen), aber das microKONTROL-Display-LCD-Kommando schreibt nur
+ * eine Zeile — daher wechseln wir die Anzeige zwischen Title (NAME) und
+ * Value über Updates. Wir setzen direkt den aktuellen Value, damit der
+ * User Style/Mood/Key/Pattern… ablesen kann, während im Main-LCD der
+ * letzte geänderte Parameter steht.
+ */
+export function pushAllSubLcds(channel = 0) {
+  const st = useChorditStore.getState();
+  const pairs: Array<[number, string]> = [
+    [1, fit8(st.performanceMode)],
+    [2, fit8(st.voicingMode)],
+    [3, fit8(st.selectedKey)],
+    [4, fit8(`LEN ${st.loopLength}`)],
+    [5, fit8(st.harmonicStyle)],
+    [6, fit8(String(st.moodTarget))],
+    [7, fit8((st.activeProgressionPresetId ?? "—").toUpperCase())],
+    [8, fit8(`BPM ${st.performanceParams.bpm}`)],
+  ];
+  for (const [lcdNum, text] of pairs) {
+    midiBridge.sendSysEx(lcdSysex(channel, lcdNum, text, "orange"));
+  }
+}
+
+let subLcdUnsub: (() => void) | null = null;
+
+/** Subscribe to store; refresh sub-LCDs whenever a tracked parameter changes. */
+export function startSubLcdSync(channel = 0): () => void {
+  if (subLcdUnsub) subLcdUnsub();
+  pushAllSubLcds(channel);
+  subLcdUnsub = useChorditStore.subscribe(() => pushAllSubLcds(channel));
+  return () => {
+    subLcdUnsub?.();
+    subLcdUnsub = null;
+  };
+}
+
+
