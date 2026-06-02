@@ -90,14 +90,84 @@ export function computeChordRowLedStates(
  * for the Display LED SysEx (Section 3 (15)/(16)) to take effect.
  */
 export function nativeModeInRequestSysex(globalChannel = 0): number[] {
+  // 9-Byte Korg-Format (Bome/Korg Beispielsequenz, MIDI-Impl Rev 1.0).
+  // Ältere 8-Byte-Variante wird auf vielen Firmware-Ständen ignoriert.
   const g = globalChannel & 0x0f;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x01, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0x01, 0xf7];
 }
 
-/** Native KORG Mode Out Request — returns the controller to normal MIDI mode. */
+/** Native KORG Mode Out Request (9 Bytes) — zurück in normalen MIDI-Mode. */
 export function nativeModeOutRequestSysex(globalChannel = 0): number[] {
   const g = globalChannel & 0x0f;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0x00, 0xf7];
+}
+
+/**
+ * 4-Packet Init Sequence — nach Native ON nötig, damit der Controller
+ * Display-LED / LCD-Befehle vom Host akzeptiert. Quelle: Bome/Korg
+ * Beispielsequenz für microKONTROL Native Mode.
+ *
+ * Packet 1: 39B Payload — Scene-/Pad-Default-Parameter
+ * Packet 2: 18B Payload — Pad-LEDs, LCD-Farben, Main-LCD ASCII
+ * Packet 3: 33B Payload — Sub-LCD 1..4 (4×8 ASCII Spaces)
+ * Packet 4: 33B Payload — Sub-LCD 5..8 (4×8 ASCII Spaces)
+ */
+export function packetInitSysex(globalChannel = 0): number[][] {
+  const g = globalChannel & 0x0f;
+  const head = [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x3f];
+
+  const packet1 = [
+    ...head, 0x27, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xf7,
+  ];
+
+  const packet2 = [
+    ...head, 0x12, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
+    0xf7,
+  ];
+
+  const spaces32 = new Array(32).fill(0x20);
+  const packet3 = [...head, 0x21, 0x02, ...spaces32, 0xf7];
+  const packet4 = [...head, 0x21, 0x03, ...spaces32, 0xf7];
+
+  return [packet1, packet2, packet3, packet4];
+}
+
+/**
+ * Direct Display LCD command:
+ *   F0 42 4g 6E 00 22 09 bn <8 ASCII> F7
+ *   bn = (color << 4) | lcdNum   lcdNum: 0..7 = Sub-LCD 1..8, 8 = Main LCD
+ *   color: 0=off, 1=red, 2=green, 3=orange
+ */
+export type LcdColor = "off" | "red" | "green" | "orange";
+const LCD_COLOR_BYTE: Record<LcdColor, number> = { off: 0, red: 1, green: 2, orange: 3 };
+
+export function lcdSysex(
+  globalChannel: number,
+  display: "main" | number,
+  text: string,
+  color: LcdColor = "orange",
+): number[] {
+  const g = globalChannel & 0x0f;
+  const lcdNum = display === "main" ? 8 : ((display - 1) & 0x07);
+  const bn = (LCD_COLOR_BYTE[color] << 4) | lcdNum;
+  const safe = text
+    .split("")
+    .map((c) => {
+      const code = c.charCodeAt(0);
+      return code >= 0x20 && code <= 0x7f ? code : 0x3f;
+    })
+    .slice(0, 8);
+  while (safe.length < 8) safe.push(0x20);
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x22, 0x09, bn, ...safe, 0xf7];
 }
 
 /**

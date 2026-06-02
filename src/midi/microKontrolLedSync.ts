@@ -2,9 +2,9 @@
  * Runtime LED sync — subscribes to the chord/extension store and pushes
  * Display LED SysEx to the active MIDI output whenever the state changes.
  *
- * Automatically sends the Native KORG Mode In Request on start, so the user
- * does NOT need to switch the controller manually (there is no menu entry for
- * it — Native mode is host-initiated; see docs/microkontrol-led-patch.md).
+ * On start it runs the full Native-Mode init handshake (Native ON + 4 init
+ * packets), exactly like the working Python reference (microkontrol_native_v4.py),
+ * because Display-LED/LCD-Befehle erst nach diesem Handshake akzeptiert werden.
  */
 import { useChorditStore } from "../app/store";
 import { midiBridge } from "./midiBridge";
@@ -12,6 +12,8 @@ import {
   computeChordRowLedStates,
   diffLedStates,
   nativeModeInRequestSysex,
+  nativeModeOutRequestSysex,
+  packetInitSysex,
   padLedSysex,
   type LedState,
 } from "./microKontrolLeds";
@@ -19,6 +21,26 @@ import {
 let started = false;
 let unsub: (() => void) | null = null;
 let lastStates: Map<number, LedState> = new Map();
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Sendet Native-Mode-On + 4-Packet-Init mit den gleichen Delays wie
+ * das Python-Referenzscript (150ms / 250ms / 120ms zwischen Packets).
+ * Rückgabe: true wenn alle Packets verschickt wurden.
+ */
+export async function runNativeModeInit(channel = 0): Promise<boolean> {
+  let ok = midiBridge.sendSysEx(nativeModeInRequestSysex(channel));
+  if (!ok) return false;
+  await sleep(250);
+
+  const packets = packetInitSysex(channel);
+  for (const p of packets) {
+    ok = midiBridge.sendSysEx(p) && ok;
+    await sleep(120);
+  }
+  return ok;
+}
 
 /** Send the full lower-row LED snapshot (used on connect / scene change). */
 export function pushAllLeds(channel: number) {
@@ -30,13 +52,16 @@ export function pushAllLeds(channel: number) {
   lastStates = next;
 }
 
-/** Idempotent global start. */
-export function startMicroKontrolLedSync(channel = 0): () => void {
+/** Sendet Native-Off — Controller fällt zurück in normalen MIDI-Mode. */
+export function releaseNativeMode(channel = 0): boolean {
+  return midiBridge.sendSysEx(nativeModeOutRequestSysex(channel));
+}
+
+/** Idempotent global start. Returns Promise that resolves once init is done. */
+export async function startMicroKontrolLedSync(channel = 0): Promise<() => void> {
   if (started) return () => {};
   started = true;
-  // 1. Ask the controller to enter Native KORG mode so the host owns the LEDs.
-  midiBridge.sendSysEx(nativeModeInRequestSysex(channel));
-  // 2. Initial snapshot so the LEDs match the current state immediately.
+  await runNativeModeInit(channel);
   pushAllLeds(channel);
 
   unsub = useChorditStore.subscribe((s) => {

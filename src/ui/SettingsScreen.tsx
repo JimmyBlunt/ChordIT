@@ -6,8 +6,7 @@ import { ALL_CONTROL_IDS, DEFAULT_MIDI_MAPPINGS, type ControlId, type MidiMappin
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
-import { pushAllLeds } from "@/midi/microKontrolLedSync";
-import { nativeModeInRequestSysex } from "@/midi/microKontrolLeds";
+import { pushAllLeds, runNativeModeInit, releaseNativeMode } from "@/midi/microKontrolLedSync";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -165,8 +164,7 @@ export function SettingsScreen() {
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
-      midiBridge.sendSysEx(nativeModeInRequestSysex(0));
-      pushAllLeds(0);
+      void runNativeModeInit(0).then(() => pushAllLeds(0));
     }
     const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
@@ -206,7 +204,7 @@ export function SettingsScreen() {
     setConfigMessage("ChordIT microKONTROL Scene-Mappings geladen — passend zu deinem Librarian-Screenshot.");
   };
 
-  const sendNativeModeAndLedSnapshot = (targetId = ledOutputId) => {
+  const sendNativeModeAndLedSnapshot = async (targetId = ledOutputId) => {
     if (!targetId) {
       setLedMessage("Kein SysEx-Output gewählt.");
       return;
@@ -214,9 +212,19 @@ export function SettingsScreen() {
     handle?.selectSysExOutput(targetId);
     const name = handle?.outputs.find((o) => o.id === targetId)?.name ?? "Output";
     if (handle && !midiBridge.hasTarget()) midiBridge.setTarget(handle.midiOut, `SysEx → ${name}`);
-    const sent = midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+    setLedMessage(`Sende Native-Mode-Init an ${name}…`);
+    const sent = await runNativeModeInit(0);
     pushAllLeds(0);
-    setLedMessage(sent ? `Gesendet an ${name}.` : `Nicht gesendet — ${name} ist nicht erreichbar oder SysEx ist blockiert.`);
+    setLedMessage(
+      sent
+        ? `Native Mode + 4-Packet Init + LED-Snapshot an ${name} gesendet.`
+        : `Nicht gesendet — ${name} ist nicht erreichbar oder SysEx ist blockiert.`,
+    );
+  };
+
+  const releaseMicroKontrol = () => {
+    const ok = releaseNativeMode(0);
+    setLedMessage(ok ? "Native Mode beendet — Controller zurück im normalen MIDI-Mode." : "Konnte Native-Off nicht senden.");
   };
 
   const exportConfig = () => {
@@ -523,13 +531,22 @@ export function SettingsScreen() {
               <div className="text-[10px] text-muted-foreground">
                 Für Pad-LEDs muss hier microKONTROL PORT A stehen. Eine Librarian-Scene setzt nur den Input; LED-Steuerung bleibt SysEx.
               </div>
-              <button
-                className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
-                disabled={!ledOutputId}
-                onClick={() => sendNativeModeAndLedSnapshot()}
-              >
-                NATIVE MODE + LED SNAPSHOT SENDEN
-              </button>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent"
+                  disabled={!ledOutputId}
+                  onClick={() => void sendNativeModeAndLedSnapshot()}
+                >
+                  NATIVE MODE INIT + LED SNAPSHOT
+                </button>
+                <button
+                  className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent"
+                  disabled={!ledOutputId}
+                  onClick={releaseMicroKontrol}
+                >
+                  ZURÜCK IN NORMAL MODE
+                </button>
+              </div>
               {ledMessage && (
                 <div className="text-[10px] text-emerald-400">{ledMessage}</div>
               )}
