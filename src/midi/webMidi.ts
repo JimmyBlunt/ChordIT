@@ -30,6 +30,8 @@ export type WebMidiHandle = {
   /** Currently active input ids. */
   getSelectedInputs: () => string[];
   selectOutput: (id: string | null) => void;
+  /** Selects an independent raw SysEx output, used for controller LEDs. */
+  selectSysExOutput: (id: string | null) => void;
   midiIn: MidiIn;
   midiOut: MidiOut;
 };
@@ -52,6 +54,7 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
 
   const listeners: Array<(m: MidiMessage) => void> = [];
   let currentOut: MIDIOutputLike | null = null;
+  let currentSysExOut: MIDIOutputLike | null = null;
   const activeInputs = new Map<string, MIDIInputLike>();
 
   const midiIn: MidiIn = {
@@ -72,9 +75,10 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
       currentOut.send([status, event.note & 0x7f, event.velocity & 0x7f]);
     },
     sendSysEx(data: number[]) {
-      if (!currentOut) return;
+      const out = currentSysExOut ?? currentOut;
+      if (!out) return;
       try {
-        currentOut.send(data);
+        out.send(data);
       } catch {
         // Browser refused SysEx (permission denied) — silently drop.
       }
@@ -129,6 +133,9 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
     },
     selectOutput(id) {
       currentOut = id ? access.outputs.get(id) ?? null : null;
+    },
+    selectSysExOutput(id) {
+      currentSysExOut = id ? access.outputs.get(id) ?? null : null;
     },
     midiIn,
     midiOut,
