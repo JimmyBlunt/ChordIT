@@ -54,6 +54,10 @@ function isMicroKontrolPortBInput(name: string) {
   return (/microkontrol/i.test(name) && /port\s*b/i.test(name)) || /^port\s*b$/i.test(name.trim());
 }
 
+function isMicroKontrolCtrlInput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
+}
+
 function isMicroKontrol(name: string) {
   return /microkontrol/i.test(name);
 }
@@ -152,13 +156,15 @@ export function SettingsScreen() {
     const savedIds =
       s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [];
     const savedValidIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
-    const portBInput = handle.inputs.find((i) => isMicroKontrolPortBInput(i.name)) ?? null;
-    const validIds = portBInput && !savedValidIds.includes(portBInput.id)
-      ? [...savedValidIds, portBInput.id]
-      : savedValidIds;
+    const nativeInputs = handle.inputs.filter((i) => isMicroKontrolPortBInput(i.name) || isMicroKontrolCtrlInput(i.name));
+    const validIds = [...savedValidIds];
+    for (const input of nativeInputs) {
+      if (!validIds.includes(input.id)) validIds.push(input.id);
+    }
     if (validIds.length > 0) {
       midiManager.selectInputs(validIds);
       setInputIds(validIds);
+      s.setMidiInputIds(validIds);
       s.setMidiStatus(true, s.midiOutputConnected);
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
