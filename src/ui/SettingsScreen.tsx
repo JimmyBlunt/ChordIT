@@ -75,6 +75,7 @@ export function SettingsScreen() {
     s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [],
   );
   const [outputId, setOutputId] = useState<string>(s.midiOutputId);
+  const [ledOutputId, setLedOutputId] = useState<string>("");
   const [midiError, setMidiError] = useState<string | null>(null);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
 
@@ -85,8 +86,13 @@ export function SettingsScreen() {
   // Detect iframe AFTER mount to avoid SSR/CSR hydration mismatch.
   const [inIframe, setInIframe] = useState(false);
   const [bridgeActive, setBridgeActive] = useState(midiBridge.hasTarget());
+  const [bridgeTargetName, setBridgeTargetName] = useState(midiBridge.getTargetName());
   useEffect(() => {
     setInIframe(window.self !== window.top);
+    return midiBridge.onTargetChange((name) => {
+      setBridgeActive(midiBridge.hasTarget());
+      setBridgeTargetName(name);
+    });
   }, []);
 
   const initMidi = () => {
