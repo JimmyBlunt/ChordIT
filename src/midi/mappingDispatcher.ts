@@ -3,7 +3,7 @@ import { useChorditStore, PERFORMANCE_MODES } from "../app/store";
 import { ALL_KEYS } from "../key/scales";
 import type { ChordExtension, ChordType, VoicingMode } from "../chord/chordTypes";
 import type { ControlId, MidiMapping, MidiMessage } from "./midiTypes";
-import { MICROKONTROL_LEGACY_SCENE_MAPPINGS } from "./midiTypes";
+import { DEFAULT_MIDI_MAPPINGS, MICROKONTROL_LEGACY_SCENE_MAPPINGS } from "./midiTypes";
 import {
   ALL_HARMONIC_MODES,
   ALL_HARMONIC_STYLES,
@@ -34,11 +34,11 @@ export function findMatchingControl(
     return false;
   });
   if (m) return m.controlId;
-  const legacy = MICROKONTROL_LEGACY_SCENE_MAPPINGS.find((m) => {
+  const fallback = [...DEFAULT_MIDI_MAPPINGS, ...MICROKONTROL_LEGACY_SCENE_MAPPINGS].find((m) => {
     if (m.channel !== msg.channel) return false;
     return m.inputType === "cc" && msg.type === "cc" && m.number === msg.cc;
   });
-  return legacy ? legacy.controlId : null;
+  return fallback ? fallback.controlId : null;
 }
 
 function cycle<T>(arr: readonly T[], current: T, dir: 1 | -1): T {
