@@ -196,16 +196,17 @@ export function SettingsScreen() {
     mapper.save();
   };
 
-  const sendNativeModeAndLedSnapshot = () => {
-    if (!ledOutputId) {
+  const sendNativeModeAndLedSnapshot = (targetId = ledOutputId) => {
+    if (!targetId) {
       setLedMessage("Kein SysEx-Output gewählt.");
       return;
     }
-    handle?.selectSysExOutput(ledOutputId);
-    midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+    handle?.selectSysExOutput(targetId);
+    const name = handle?.outputs.find((o) => o.id === targetId)?.name ?? "Output";
+    if (handle && !midiBridge.hasTarget()) midiBridge.setTarget(handle.midiOut, `SysEx → ${name}`);
+    const sent = midiBridge.sendSysEx(nativeModeInRequestSysex(0));
     pushAllLeds(0);
-    const name = handle?.outputs.find((o) => o.id === ledOutputId)?.name ?? "Output";
-    setLedMessage(`Gesendet an ${name}.`);
+    setLedMessage(sent ? `Gesendet an ${name}.` : `Nicht gesendet — ${name} ist nicht erreichbar oder SysEx ist blockiert.`);
   };
 
   const exportConfig = () => {
@@ -498,7 +499,7 @@ export function SettingsScreen() {
                   setLedOutputId(id);
                   handle.selectSysExOutput(id || null);
                   if (id) {
-                    sendNativeModeAndLedSnapshot();
+                    sendNativeModeAndLedSnapshot(id);
                   }
                 }}
               >
