@@ -3,6 +3,7 @@ import { useChorditStore, PERFORMANCE_MODES } from "../app/store";
 import { ALL_KEYS } from "../key/scales";
 import type { ChordExtension, ChordType, VoicingMode } from "../chord/chordTypes";
 import type { ControlId, MidiMapping, MidiMessage } from "./midiTypes";
+import { MICROKONTROL_LEGACY_SCENE_MAPPINGS } from "./midiTypes";
 import {
   ALL_HARMONIC_MODES,
   ALL_HARMONIC_STYLES,
@@ -10,7 +11,7 @@ import {
 } from "../progressions/progressionTypes";
 import { progressionPresets } from "../progressions/progressionPresets";
 import { PATTERNS } from "../performance/patterns";
-import { areNativePadNotesActive, isNativePadNoteNumber, showLcd } from "./microKontrolNative";
+import { areNativePadNotesActive, isNativePadNoteNumber, showControlValue, showLcd } from "./microKontrolNative";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
@@ -32,7 +33,12 @@ export function findMatchingControl(
     if (m.inputType === "note" && msg.type === "noteOn") return m.number === msg.note;
     return false;
   });
-  return m ? m.controlId : null;
+  if (m) return m.controlId;
+  const legacy = MICROKONTROL_LEGACY_SCENE_MAPPINGS.find((m) => {
+    if (m.channel !== msg.channel) return false;
+    return m.inputType === "cc" && msg.type === "cc" && m.number === msg.cc;
+  });
+  return legacy ? legacy.controlId : null;
 }
 
 function cycle<T>(arr: readonly T[], current: T, dir: 1 | -1): T {
@@ -46,11 +52,21 @@ function dialDirection(msg: MidiMessage, key: string): 1 | -1 | null {
     // Note triggers always advance forward.
     return msg.type === "noteOn" ? 1 : null;
   }
+  if (msg.channel === 15 && msg.cc >= 16 && msg.cc <= 23) {
+    if (msg.value === 0) return null;
+    return msg.value > 64 ? -1 : 1;
+  }
   const prev = lastCc.get(key);
   lastCc.set(key, msg.value);
   if (prev === undefined) return msg.value >= 64 ? 1 : -1;
   if (msg.value > prev) return 1;
   if (msg.value < prev) return -1;
+  return null;
+}
+
+function ccValue(msg: MidiMessage): number | null {
+  if (msg.type === "cc") return msg.value;
+  if (msg.type === "noteOn") return msg.velocity;
   return null;
 }
 
