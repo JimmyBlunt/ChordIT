@@ -180,8 +180,8 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       // into N equal segments where N = total available patterns. Each segment
       // selects exactly one preset, so moving the slider across the full range
       // sweeps once through all presets (not per-tick cycling).
-      if (msg.type !== "cc" && msg.type !== "noteOn") return;
-      const value = msg.type === "cc" ? msg.value : msg.velocity;
+      const value = ccValue(msg);
+      if (value === null) return;
       const total = PATTERNS.length + s.userPatterns.length;
       if (total === 0) return;
       // Map 0..127 → 0..total-1 by equal segments.
@@ -189,6 +189,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (idx !== s.performanceParams.patternIndex) {
         s.setPerformanceParams({ patternIndex: idx });
       }
+      showControlValue(1, "RHYTHM", `PAT ${idx + 1}`);
       showLcd("RHYTHM", `PAT ${idx + 1}`);
       // Remember the last raw value so dialDirection stays consistent if reused.
       lastCc.set(id, value);
@@ -198,8 +199,8 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       // Voicing shift slider: absolute mapping — slider range (0..127) maps
       // linearly to -6..+6 semitones. Delta vs. last position is applied as
       // voiceUp/voiceDown so the on-screen slider visually mirrors hardware.
-      if (msg.type !== "cc" && msg.type !== "noteOn") return;
-      const value = msg.type === "cc" ? msg.value : msg.velocity;
+      const value = ccValue(msg);
+      if (value === null) return;
       // 0..127 → -6..+6
       const target = Math.max(-6, Math.min(6, Math.round((value / 127) * 12) - 6));
       const prev = s.voicingShiftValue;
@@ -216,7 +217,39 @@ function dispatch(id: ControlId, msg: MidiMessage) {
         });
       }
       s.setVoicingShiftValue(target);
+      showControlValue(2, "V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
       showLcd("V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.strum": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.round(5 + (value / 127) * 115);
+      s.setPerformanceParams({ strumDeltaMs: next });
+      showControlValue(3, "STRUM", `${next}MS`);
+      showLcd("STRUM", `${next}MS`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.slop": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.round((value / 127) * 80);
+      s.setPerformanceParams({ slopMaxMs: next });
+      showControlValue(4, "SLOP", `${next}MS`);
+      showLcd("SLOP", `${next}MS`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.arp": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const steps = [24, 12, 8, 6, 4, 3, 2, 1];
+      const next = steps[Math.min(steps.length - 1, Math.floor((value / 128) * steps.length))];
+      s.setPerformanceParams({ arpIntervalTicks: next });
+      showControlValue(5, "ARP", `${next}T`);
+      showLcd("ARP", `${next}T`);
       lastCc.set(id, value);
       return;
     }
