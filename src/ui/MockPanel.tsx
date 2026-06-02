@@ -6,6 +6,18 @@ import type { ChordType, ChordExtension } from "@/chord/chordTypes";
 
 const CHORDS: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXTS: ChordExtension[] = ["6", "m7", "M7", "9"];
+const EXT_LABEL_ELECTRONIC: Record<ChordExtension, string> = {
+  "6": "Warm",
+  m7: "Deep",
+  M7: "Dream",
+  "9": "Air",
+};
+const CHORD_LABEL_ELECTRONIC: Record<ChordType, string> = {
+  Dim: "Dim",
+  Min: "Min",
+  Maj: "Maj",
+  Sus: "Sus2",
+};
 
 /**
  * Virtual hardware panel — clickable replica of the future ChordIT device.
@@ -60,6 +72,7 @@ export function MockPanel({
     s.setLoopEnabled(!s.loopEnabled);
   };
 
+  const electronic = s.harmonicMode === "Electronic";
   return (
     <section className="border border-border rounded-md bg-card p-4 flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -67,6 +80,18 @@ export function MockPanel({
         <div className="text-[10px] text-muted-foreground">
           {s.mockMode ? "MOCK ON" : "MOCK OFF"} · LEN {s.loopLength}{" "}
           {s.loopLengthPending !== s.loopLength && `→ ${s.loopLengthPending} (2s…)`}
+        </div>
+      </div>
+
+      {/* Hardware-style mini display */}
+      <div className="border border-border rounded bg-background px-3 py-2 flex items-center justify-between">
+        <div className="text-4xl tracking-tight text-pad-active font-mono leading-none">
+          {s.currentDisplayString || "—"}
+        </div>
+        <div className="text-right text-[10px] text-muted-foreground tracking-widest leading-tight">
+          <div>{s.harmonicMode} · {s.performanceMode}</div>
+          <div>{s.voicingMode} · {s.keyModeEnabled ? `KEY ${s.selectedKey}` : "FREE"}</div>
+          <div className="text-foreground/80">[{s.currentChordNotes.join(", ") || "—"}]</div>
         </div>
       </div>
 
