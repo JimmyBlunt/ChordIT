@@ -175,11 +175,14 @@ export function SettingsScreen() {
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
+      if (!midiBridge.hasTarget()) {
+        midiBridge.setTarget(handle.midiOut, `SysEx → ${ledOutput.name}`);
+      }
       // Listen for native-mode pad/encoder/slider SysEx from CTRL input
       stopNativeInput = startNativeInput((cb) => handle.onSysEx(cb));
       // Native init → start LED subscription → greeting on LCD
-      void runNativeModeInit(0).then(async () => {
-        stopLedSync = await startMicroKontrolLedSync(0);
+      void startMicroKontrolLedSync(0).then((stop) => {
+        stopLedSync = stop;
         showLcd("CHORDIT", "READY", "green");
       });
     }
