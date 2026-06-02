@@ -531,13 +531,22 @@ export function SettingsScreen() {
               <div className="text-[10px] text-muted-foreground">
                 Für Pad-LEDs muss hier microKONTROL PORT A stehen. Eine Librarian-Scene setzt nur den Input; LED-Steuerung bleibt SysEx.
               </div>
-              <button
-                className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
-                disabled={!ledOutputId}
-                onClick={() => sendNativeModeAndLedSnapshot()}
-              >
-                NATIVE MODE + LED SNAPSHOT SENDEN
-              </button>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent"
+                  disabled={!ledOutputId}
+                  onClick={() => void sendNativeModeAndLedSnapshot()}
+                >
+                  NATIVE MODE INIT + LED SNAPSHOT
+                </button>
+                <button
+                  className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent"
+                  disabled={!ledOutputId}
+                  onClick={releaseMicroKontrol}
+                >
+                  ZURÜCK IN NORMAL MODE
+                </button>
+              </div>
               {ledMessage && (
                 <div className="text-[10px] text-emerald-400">{ledMessage}</div>
               )}
