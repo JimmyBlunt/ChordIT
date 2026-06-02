@@ -7,7 +7,7 @@ import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
 import { startMicroKontrolLedSync, runNativeModeInit, releaseNativeMode, pushAllLeds } from "@/midi/microKontrolLedSync";
-import { startNativeInput, showLcd } from "@/midi/microKontrolNative";
+import { startNativeInput, showLcd, startSubLcdSync } from "@/midi/microKontrolNative";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
