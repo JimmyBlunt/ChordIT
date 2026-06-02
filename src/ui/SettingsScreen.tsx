@@ -6,6 +6,8 @@ import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTy
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
+import { pushAllLeds } from "@/midi/microKontrolLedSync";
+import { nativeModeInRequestSysex } from "@/midi/microKontrolLeds";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -42,6 +44,14 @@ function isValidMapping(value: unknown): value is MidiMapping {
     m.number >= 0 &&
     m.number <= 127
   );
+}
+
+function isMicroKontrolPortA(name: string) {
+  return /microkontrol/i.test(name) && /port\s*a/i.test(name);
+}
+
+function isMicroKontrol(name: string) {
+  return /microkontrol/i.test(name);
 }
 
 export function SettingsScreen() {
