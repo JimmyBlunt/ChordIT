@@ -3,6 +3,13 @@ import { useChorditStore, PERFORMANCE_MODES } from "../app/store";
 import { ALL_KEYS } from "../key/scales";
 import type { ChordExtension, ChordType, VoicingMode } from "../chord/chordTypes";
 import type { ControlId, MidiMapping, MidiMessage } from "./midiTypes";
+import {
+  ALL_HARMONIC_MODES,
+  ALL_HARMONIC_STYLES,
+  ALL_MOOD_TARGETS,
+} from "../progressions/progressionTypes";
+import { progressionPresets } from "../progressions/progressionPresets";
+import { PATTERNS } from "../performance/patterns";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
