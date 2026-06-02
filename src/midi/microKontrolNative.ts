@@ -239,16 +239,6 @@ function handleEncoder(index: number, delta: number) {
     }
   }
 }
-      const ids = progressionPresets.map((p) => p.id);
-      if (ids.length === 0) return;
-      const cur = s.activeProgressionPresetId ?? ids[0];
-      const nextId = cycle(ids, cur, delta);
-      s.setActiveProgressionPresetId(nextId);
-      showLcd("PROG", nextId.slice(0, 8).toUpperCase());
-      return;
-    }
-  }
-}
 
 function handleSlider(index: number, value: number) {
   const s = useChorditStore.getState();
