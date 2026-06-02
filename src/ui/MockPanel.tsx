@@ -130,20 +130,8 @@ export function MockPanel({
             </button>
           ))}
         </div>
-              key={e}
-              data-control={`ext.${e}`}
-              onClick={() => s.toggleExtension(e)}
-              className={`py-4 rounded-full border text-xs tracking-widest ${
-                s.activeExtensions.includes(e)
-                  ? "bg-pad-active text-background border-pad-active"
-                  : "border-border hover:border-pad-active/50"
-              }`}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
       </div>
+
 
       {/* Rotaries */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
