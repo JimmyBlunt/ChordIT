@@ -52,10 +52,6 @@ function dialDirection(msg: MidiMessage, key: string): 1 | -1 | null {
     // Note triggers always advance forward.
     return msg.type === "noteOn" ? 1 : null;
   }
-  if (msg.channel === 15 && msg.cc >= 16 && msg.cc <= 23) {
-    if (msg.value === 0) return null;
-    return msg.value > 64 ? -1 : 1;
-  }
   const prev = lastCc.get(key);
   lastCc.set(key, msg.value);
   if (prev === undefined) return msg.value >= 64 ? 1 : -1;

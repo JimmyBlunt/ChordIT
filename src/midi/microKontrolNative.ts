@@ -82,12 +82,14 @@ type NativeEvent =
   | { kind: "switch"; index: number; value: number };
 
 export function parseNativeSysEx(data: number[]): NativeEvent | null {
-  // F0 42 4g 6E <func> nn vv F7   (8 bytes)
+  // F0 42 4g 6E 08 <func> nn vv F7 (microKONTROL)
+  // Older references omit the 08 model byte; accept both shapes.
   if (data.length < 8) return null;
   if (data[0] !== 0xf0 || data[1] !== 0x42 || data[3] !== 0x6e) return null;
-  const func = data[4];
-  const nn = data[5];
-  const vv = data[6];
+  const offset = data[4] === 0x08 ? 1 : 0;
+  const func = data[4 + offset];
+  const nn = data[5 + offset];
+  const vv = data[6 + offset];
   switch (func) {
     case 0x45:
       return { kind: "pad", index: nn & 0x0f, velocity: vv };
