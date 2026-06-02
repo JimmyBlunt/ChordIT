@@ -8,6 +8,7 @@ export type MidiMessage =
 
 export interface MidiOut {
   send(event: NoteEvent): void;
+  sendSysEx?(data: number[]): void;
 }
 
 export interface MidiIn {
