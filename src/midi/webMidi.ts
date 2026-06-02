@@ -91,8 +91,14 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
     },
   };
 
+  const sysexListeners: SysExListener[] = [];
   const handleRaw = (data: Uint8Array | number[]) => {
-    const [status, d1, d2] = [data[0], data[1], data[2]];
+    const arr = Array.from(data);
+    if (arr[0] === 0xf0) {
+      for (const l of sysexListeners) l(arr);
+      return;
+    }
+    const [status, d1, d2] = [arr[0], arr[1], arr[2]];
     const channel = status & 0x0f;
     const kind = status & 0xf0;
     let msg: MidiMessage | null = null;
