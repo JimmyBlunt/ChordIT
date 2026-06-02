@@ -34,17 +34,44 @@ const VOICING_MODES: VoicingMode[] = ["Split", "Octave"];
 // ── LCD helpers ───────────────────────────────────────────────────────────
 const lcdGlobalChannel = 0;
 let lastLcdClearTimer: ReturnType<typeof setTimeout> | null = null;
+const lcdValueTimers = new Map<number, ReturnType<typeof setTimeout>>();
+const idleSubLcdLabels = new Map<number, string>([
+  [1, "PERFORM"],
+  [2, "VOICING"],
+  [3, "KEY"],
+  [4, "LOOPLEN"],
+  [5, "STYLE"],
+  [6, "MOOD"],
+  [7, "PROG"],
+  [8, "BPM"],
+]);
 
-/** Schreibt "TITLE" auf Main-LCD und (optional) value auf Sub-LCD 1. */
+function fit8(s: string): string {
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+/** Schreibt kurz den letzten Parameter aufs Main-LCD. */
 export function showLcd(title: string, value?: string, color: LcdColor = "orange") {
-  midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, "main", title, color));
-  if (value !== undefined) {
-    midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, 1, value, color));
-  }
+  midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, "main", value ? `${title} ${value}` : title, color));
   if (lastLcdClearTimer) clearTimeout(lastLcdClearTimer);
   lastLcdClearTimer = setTimeout(() => {
     midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, "main", "ChordIT", "green"));
-  }, 1500);
+  }, 2000);
+}
+
+/**
+ * Sub-LCD: während der Bedienung 2s den Wert zeigen, danach wieder den Namen.
+ */
+export function showControlValue(lcdNum: number, label: string, value: string, color: LcdColor = "orange") {
+  idleSubLcdLabels.set(lcdNum, fit8(label.toUpperCase()));
+  const oldTimer = lcdValueTimers.get(lcdNum);
+  if (oldTimer) clearTimeout(oldTimer);
+  midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, lcdNum, fit8(value.toUpperCase()), color));
+  const timer = setTimeout(() => {
+    lcdValueTimers.delete(lcdNum);
+    midiBridge.sendSysEx(lcdSysex(lcdGlobalChannel, lcdNum, idleSubLcdLabels.get(lcdNum) ?? fit8(label), color));
+  }, 2000);
+  lcdValueTimers.set(lcdNum, timer);
 }
 
 // ── Native Mode SysEx parser ──────────────────────────────────────────────
