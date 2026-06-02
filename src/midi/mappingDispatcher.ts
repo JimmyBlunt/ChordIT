@@ -145,14 +145,28 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       return;
     }
     case "slider.voicingShift": {
-      // Voicing shift slider: each direction step shifts the split-key/octave-base by one semitone.
-      const dir = dialDirection(msg, id);
-      if (!dir) return;
-      if (s.voicingMode === "Octave") {
-        s.setOctaveBase(Math.min(96, Math.max(24, s.octaveBase + dir)));
-      } else {
-        s.setSplitKey(Math.min(96, Math.max(24, s.splitKey + dir)));
+      // Voicing shift slider: absolute mapping — slider range (0..127) maps
+      // linearly to -6..+6 semitones. Delta vs. last position is applied as
+      // voiceUp/voiceDown so the on-screen slider visually mirrors hardware.
+      if (msg.type !== "cc" && msg.type !== "noteOn") return;
+      const value = msg.type === "cc" ? msg.value : msg.velocity;
+      // 0..127 → -6..+6
+      const target = Math.max(-6, Math.min(6, Math.round((value / 127) * 12) - 6));
+      const prev = s.voicingShiftValue;
+      const diff = target - prev;
+      if (diff !== 0 && s.currentChordNotes.length > 0) {
+        void import("../voicing/voicingEngine").then(({ voiceUp, voiceDown }) => {
+          const st = useChorditStore.getState();
+          let notes = st.currentChordNotes;
+          const dir = diff > 0 ? 1 : -1;
+          for (let i = 0; i < Math.abs(diff); i++) {
+            notes = dir > 0 ? voiceUp(notes) : voiceDown(notes);
+          }
+          st.setChord(notes, st.currentDisplayString);
+        });
       }
+      s.setVoicingShiftValue(target);
+      lastCc.set(id, value);
       return;
     }
     case "button.mode": {
