@@ -7,7 +7,7 @@ import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
 import { startMicroKontrolLedSync, runNativeModeInit, releaseNativeMode, pushAllLeds } from "@/midi/microKontrolLedSync";
-import { startNativeInput, showLcd } from "@/midi/microKontrolNative";
+import { startNativeInput, showLcd, startSubLcdSync } from "@/midi/microKontrolNative";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -178,6 +178,7 @@ export function SettingsScreen() {
     const ledOutput = handle.outputs.find((o) => isMicroKontrolCtrlOutput(o.name)) ?? null;
     let stopLedSync: (() => void) | null = null;
     let stopNativeInput: (() => void) | null = null;
+    let stopSubLcd: (() => void) | null = null;
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
@@ -186,9 +187,10 @@ export function SettingsScreen() {
       }
       // Listen for native-mode pad/encoder/slider SysEx from CTRL input
       stopNativeInput = startNativeInput((cb) => handle.onSysEx(cb));
-      // Native init → start LED subscription → greeting on LCD
+      // Native init → start LED subscription → sub-LCD labels → greeting
       void startMicroKontrolLedSync(0).then((stop) => {
         stopLedSync = stop;
+        stopSubLcd = startSubLcdSync(0);
         showLcd("CHORDIT", "READY", "green");
       });
     }
@@ -204,6 +206,7 @@ export function SettingsScreen() {
       unsub();
       stopLedSync?.();
       stopNativeInput?.();
+      stopSubLcd?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);

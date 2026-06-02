@@ -99,6 +99,77 @@ function cycle<T>(arr: readonly T[], current: T, dir: number): T {
   return arr[next];
 }
 
+/**
+ * Pad 1..8 (Index 0..7) — Transport / Mode-Cycle.
+ *   Pad 1 Propose          Pad 5 Loop Toggle
+ *   Pad 2 Cycle Perform    Pad 6 Record Toggle
+ *   Pad 3 Cycle Voicing    Pad 7 Cycle Style
+ *   Pad 4 KeyLock Toggle   Pad 8 Cycle Mode
+ */
+function handleTopPad(index: number) {
+  const s = useChorditStore.getState();
+  switch (index) {
+    case 0: {
+      void (async () => {
+        const [{ generateProposals }, { progressionPresets: pp }] = await Promise.all([
+          import("../propose/proposeEngine"),
+          import("../progressions/progressionPresets"),
+        ]);
+        const st = useChorditStore.getState();
+        const preset = st.activeProgressionPresetId
+          ? pp.find((p) => p.id === st.activeProgressionPresetId)
+          : undefined;
+        const keyStr = preset?.exampleKey ?? `${st.selectedKey} major`;
+        const proposals = generateProposals({
+          selectedKey: keyStr,
+          keyModeEnabled: st.keyModeEnabled,
+          harmonicMode: st.harmonicMode,
+          harmonicStyle: st.harmonicStyle,
+          moodTarget: st.moodTarget,
+          activeProgressionPresetId: st.activeProgressionPresetId ?? undefined,
+          chordHistory: st.chordHistory,
+          maxSuggestions: 4,
+        });
+        useChorditStore.getState().setProposals(proposals);
+      })();
+      showLcd("PROPOSE", "GO");
+      return;
+    }
+    case 1:
+      s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, 1));
+      showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
+      return;
+    case 2:
+      s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, 1));
+      showLcd("VOICING", useChorditStore.getState().voicingMode.toUpperCase());
+      return;
+    case 3:
+      s.toggleKeyMode();
+      showLcd("KEYLOCK", useChorditStore.getState().keyModeEnabled ? "ON" : "OFF");
+      return;
+    case 4:
+      s.setLoopEnabled(!s.loopEnabled);
+      showLcd("LOOP", useChorditStore.getState().loopEnabled ? "ON" : "OFF");
+      return;
+    case 5:
+      s.setLoopRecording(!s.loopRecording);
+      showLcd("RECORD", useChorditStore.getState().loopRecording ? "REC" : "OFF");
+      return;
+    case 6:
+      s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, 1));
+      showLcd("STYLE", useChorditStore.getState().harmonicStyle.toUpperCase());
+      return;
+    case 7: {
+      void import("../progressions/progressionTypes").then(({ ALL_HARMONIC_MODES: A }) => {
+        const st = useChorditStore.getState();
+        st.setHarmonicMode(cycle(A, st.harmonicMode, 1));
+        showLcd("MODE", String(useChorditStore.getState().harmonicMode).toUpperCase());
+      });
+      return;
+    }
+  }
+}
+
 function handlePad(index: number, velocity: number) {
   if (velocity === 0) return; // ignore release
   const s = useChorditStore.getState();
@@ -115,6 +186,7 @@ function handlePad(index: number, velocity: number) {
     showLcd(`EXT ${ext.toUpperCase()}`, on ? "ON" : "OFF");
     return;
   }
+  if (index >= 0 && index <= 7) handleTopPad(index);
 }
 
 function handleEncoder(index: number, delta: number) {
@@ -157,6 +229,12 @@ function handleEncoder(index: number, delta: number) {
       const nextId = cycle(ids, cur, delta);
       s.setActiveProgressionPresetId(nextId);
       showLcd("PROG", nextId.slice(0, 8).toUpperCase());
+      return;
+    }
+    case 7: {
+      const next = Math.max(40, Math.min(240, s.performanceParams.bpm + (delta > 0 ? 1 : -1)));
+      s.setPerformanceParams({ bpm: next });
+      showLcd("BPM", `${next}`);
       return;
     }
   }
@@ -255,4 +333,48 @@ export function startNativePadNotes(
     padNotesActive = false;
   };
 }
+
+// ── Persistent Sub-LCD labels (Sub-LCD 1..8 over the 8 encoder columns) ──
+function fit8(s: string): string {
+  return s.length > 8 ? s.slice(0, 8) : s;
+}
+
+/**
+ * Sub-LCD 1..8 = Encoder/Slider column labels. Sub-LCDs sind zweizeilig
+ * (8 Zeichen), aber das microKONTROL-Display-LCD-Kommando schreibt nur
+ * eine Zeile — daher wechseln wir die Anzeige zwischen Title (NAME) und
+ * Value über Updates. Wir setzen direkt den aktuellen Value, damit der
+ * User Style/Mood/Key/Pattern… ablesen kann, während im Main-LCD der
+ * letzte geänderte Parameter steht.
+ */
+export function pushAllSubLcds(channel = 0) {
+  const st = useChorditStore.getState();
+  const pairs: Array<[number, string]> = [
+    [1, fit8(st.performanceMode)],
+    [2, fit8(st.voicingMode)],
+    [3, fit8(st.selectedKey)],
+    [4, fit8(`LEN ${st.loopLength}`)],
+    [5, fit8(st.harmonicStyle)],
+    [6, fit8(String(st.moodTarget))],
+    [7, fit8((st.activeProgressionPresetId ?? "—").toUpperCase())],
+    [8, fit8(`BPM ${st.performanceParams.bpm}`)],
+  ];
+  for (const [lcdNum, text] of pairs) {
+    midiBridge.sendSysEx(lcdSysex(channel, lcdNum, text, "orange"));
+  }
+}
+
+let subLcdUnsub: (() => void) | null = null;
+
+/** Subscribe to store; refresh sub-LCDs whenever a tracked parameter changes. */
+export function startSubLcdSync(channel = 0): () => void {
+  if (subLcdUnsub) subLcdUnsub();
+  pushAllSubLcds(channel);
+  subLcdUnsub = useChorditStore.subscribe(() => pushAllSubLcds(channel));
+  return () => {
+    subLcdUnsub?.();
+    subLcdUnsub = null;
+  };
+}
+
 
