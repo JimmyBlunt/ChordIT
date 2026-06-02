@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useChordIT } from "@/app/useChordIT";
 import { useChorditStore, type State } from "@/app/store";
 import { MidiMapper } from "@/midi/midiMapper";
-import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
+import { ALL_CONTROL_IDS, DEFAULT_MIDI_MAPPINGS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
@@ -58,7 +58,7 @@ export function SettingsScreen() {
   useChordIT({ hardwareInput: true });
   const s = useChorditStore();
   const mapper = useMemo(() => {
-    return new MidiMapper(useChorditStore.getState().midiMappings);
+    return new MidiMapper(DEFAULT_MIDI_MAPPINGS);
   }, []);
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
