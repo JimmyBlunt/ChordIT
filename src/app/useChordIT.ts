@@ -250,6 +250,11 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
     // Global mapping dispatcher: pads / dials / buttons drive store actions
     // on every screen once mappings exist.
     startMappingDispatcher();
+    // microKONTROL Native-KORG-mode LED sync (no-op if device isn't in Native
+    // mode or output denies SysEx — see microkontrol-led-patch.md).
+    void import("../midi/microKontrolLedSync").then((m) =>
+      m.startMicroKontrolLedSync(0),
+    );
     if (!hardwareUnsub) {
       hardwareUnsub = midiManager.subscribe((msg) => {
         // If this incoming note is mapped to a control (pad), don't also
