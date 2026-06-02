@@ -49,6 +49,10 @@ function isMicroKontrolPortBInput(name: string) {
   return (/microkontrol/i.test(name) && /port\s*b/i.test(name)) || /^port\s*b$/i.test(name.trim());
 }
 
+function isMicroKontrolCtrlInput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
+}
+
 export const midiManager = {
   init(): Promise<WebMidiHandle | null> {
     if (handle) return Promise.resolve(handle);
@@ -70,8 +74,10 @@ export const midiManager = {
                 : s.midiInputId && h.inputs.some((i) => i.id === s.midiInputId)
                 ? [s.midiInputId]
                 : [];
-            const portBInput = h.inputs.find((i) => isMicroKontrolPortBInput(i.name)) ?? null;
-            if (portBInput && !ids.includes(portBInput.id)) ids.push(portBInput.id);
+            const nativeInputs = h.inputs.filter((i) => isMicroKontrolPortBInput(i.name) || isMicroKontrolCtrlInput(i.name));
+            for (const input of nativeInputs) {
+              if (!ids.includes(input.id)) ids.push(input.id);
+            }
             if (ids.length > 0) {
               h.selectInputs(ids);
               s.setMidiInputIds(ids);
@@ -89,6 +95,8 @@ export const midiManager = {
               if (!midiBridge.hasTarget()) {
                 midiBridge.setTarget(h.midiOut, `SysEx → ${ctrlOutput.name}`);
               }
+              void import("./microKontrolNative").then((m) => m.startNativeInput((cb) => h.onSysEx(cb)));
+              void import("./microKontrolLedSync").then((m) => m.startMicroKontrolLedSync(0));
             }
           } catch {
             // store may not be hydrated yet; Settings will wire devices manually.
