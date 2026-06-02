@@ -286,6 +286,7 @@ function handleSlider(index: number, value: number) {
       if (idx !== s.performanceParams.patternIndex) {
         s.setPerformanceParams({ patternIndex: idx });
       }
+      showControlValue(1, "RHYTHM", `PAT ${idx + 1}`);
       showLcd("RHYTHM", `PAT ${idx + 1}`);
       return;
     }
@@ -305,7 +306,51 @@ function handleSlider(index: number, value: number) {
         });
       }
       s.setVoicingShiftValue(target);
+      showControlValue(2, "V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
       showLcd("V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
+      return;
+    }
+    case 2: {
+      const next = Math.round(5 + (value / 127) * 115);
+      s.setPerformanceParams({ strumDeltaMs: next });
+      showControlValue(3, "STRUM", `${next}MS`);
+      showLcd("STRUM", `${next}MS`);
+      return;
+    }
+    case 3: {
+      const next = Math.round((value / 127) * 80);
+      s.setPerformanceParams({ slopMaxMs: next });
+      showControlValue(4, "SLOP", `${next}MS`);
+      showLcd("SLOP", `${next}MS`);
+      return;
+    }
+    case 4: {
+      const steps = [24, 12, 8, 6, 4, 3, 2, 1];
+      const next = steps[Math.min(steps.length - 1, Math.floor((value / 128) * steps.length))];
+      s.setPerformanceParams({ arpIntervalTicks: next });
+      showControlValue(5, "ARP", `${next}T`);
+      showLcd("ARP", `${next}T`);
+      return;
+    }
+    case 5: {
+      const next = Math.round(5 + (value / 127) * 95);
+      s.setPerformanceParams({ harpDeltaMs: next });
+      showControlValue(6, "HARP", `${next}MS`);
+      showLcd("HARP", `${next}MS`);
+      return;
+    }
+    case 6: {
+      const next = Math.max(1, Math.min(4, Math.round(1 + (value / 127) * 3)));
+      s.setPerformanceParams({ harpOctaves: next });
+      showControlValue(7, "HARP OCT", `${next}`);
+      showLcd("HARP OCT", `${next}`);
+      return;
+    }
+    case 7: {
+      const next = Math.max(24, Math.min(84, Math.round(24 + (value / 127) * 60)));
+      s.setOctaveBase(next);
+      showControlValue(8, "OCTBASE", `${next}`);
+      showLcd("OCT BASE", `${next}`);
       return;
     }
   }
