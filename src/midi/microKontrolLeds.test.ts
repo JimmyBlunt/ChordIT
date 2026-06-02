@@ -9,9 +9,9 @@ import {
 } from "@/midi/microKontrolLeds";
 
 describe("microKontrolLeds — SysEx builder", () => {
-  it("encodes Native KORG mode in request", () => {
+  it("encodes Native KORG mode in request (9 bytes)", () => {
     expect(nativeModeInRequestSysex(0)).toEqual([
-      0xf0, 0x42, 0x40, 0x6e, 0x00, 0x00, 0x01, 0xf7,
+      0xf0, 0x42, 0x40, 0x6e, 0x00, 0x00, 0x00, 0x01, 0xf7,
     ]);
   });
 
