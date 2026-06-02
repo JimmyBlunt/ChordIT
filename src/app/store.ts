@@ -144,6 +144,7 @@ export const useChorditStore = create<State & Actions>()(
       voicingMode: "Split",
       splitKey: 60,
       octaveBase: 60,
+      voicingShiftValue: 0,
 
       keyModeEnabled: false,
       selectedKey: "C",
