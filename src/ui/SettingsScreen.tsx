@@ -227,7 +227,9 @@ export function SettingsScreen() {
     if (handle && !midiBridge.hasTarget()) midiBridge.setTarget(handle.midiOut, `SysEx → ${name}`);
     setLedMessage(`Sende Native-Mode-Init an ${name}…`);
     const sent = await runNativeModeInit(0);
+    await startMicroKontrolLedSync(0);
     pushAllLeds(0);
+    showLcd("CHORDIT", "READY", "green");
     setLedMessage(
       sent
         ? `Native Mode + 4-Packet Init + LED-Snapshot an ${name} gesendet.`
