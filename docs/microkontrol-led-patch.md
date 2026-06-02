@@ -7,63 +7,96 @@ Ziel: Die unteren 2 Pad-Reihen (Pads 9–16) deines Korg microKONTROL sollen
 - Pad 13–16 →  Extensions **6 · m7 · M7 · 9**       (Toggle, mehrere möglich)
 
 Quelle: *microKONTROL MIDI Implementation*, Rev 1.0 (2003-07-18),
-Abschnitt 3-2 (1) „Native KORG mode Display LEDs".
+Abschnitt 3 (15)/(16) „Native KORG mode In/Out" und 3-2 (1) „Display LEDs".
 
 ---
 
 ## Warum das Problem auftritt
 
-Im Standard-**MIDI-Modus** verwaltet der microKONTROL die Pad-LEDs **lokal**.
-Per Default stehen die Pads auf `SW Mode = Toggle` — d. h. ein Druck schaltet
-die LED um und der Host kann sie **nicht** von außen steuern. Deshalb bleiben
-deine Pads dauerhaft an und gehen nur kurz aus, wenn du drückst.
+Im normalen **MIDI-Modus** verwaltet der microKONTROL die Pad-LEDs **lokal**
+(Standard-Setting „PAD Illumination", Pad 12 in Setting Mode). In diesem Modus
+ignoriert der Controller die LED-SysEx des Hosts komplett — deshalb bleiben
+deine Pads dauerhaft an / aus und reagieren nur auf den Druck selbst.
 
-Die SysEx-Befehle für LED-Steuerung (`F0 42 4g 6E 00 01 …`) funktionieren
-**ausschließlich im *Native KORG Mode***. Sobald der Controller im Native Mode
-läuft, ist der Host alleiniger Besitzer der LEDs — und ChordIT übernimmt.
-
----
-
-## Schritt 1 — microKONTROL in Native KORG Mode versetzen
-
-1. **SETTING** drücken (LED leuchtet).
-2. Mit den `<`/`>`-Tastern den Parameter **„Common"** wählen.
-3. Encoder 1 drehen, bis **„Mode = Native"** im Display steht.
-4. **ENTER** drücken → Display zeigt „Sure?"
-5. **ENTER** erneut drücken → Gerät startet kurz neu im Native KORG Mode.
-
-> **Bleibend speichern**: SETTING ▸ „Write Global" ▸ ENTER (sonst geht der
-> Modus beim Ausschalten verloren).
-
-Nach dem Neustart sind **alle LEDs aus** — das ist korrekt. Der Host hat jetzt
-die volle Kontrolle.
+Die Display-LED-SysEx (`F0 42 4g 6E 00 01 …`) wirkt **ausschließlich im
+Native KORG Mode** (siehe MIDI-Implementation, Fußnote *5: *„Received when in
+native KORG mode"*).
 
 ---
 
-## Schritt 2 — Globalen MIDI-Kanal merken
+## Wichtige Korrektur gegenüber älteren Versionen dieser Doku
 
-Im Native Mode sendet der microKONTROL alle Events (Pad / Encoder / Slider)
-**als SysEx auf seinem Global Channel** (Default: **Kanal 1 = `g=0`**).
-ChordIT geht standardmäßig von `g=0` aus. Wenn dein Gerät auf einem anderen
-Kanal steht: SETTING ▸ „MIDI Ch" ▸ ggf. auf `1` stellen.
+> Es gibt am Gerät **keinen** Menüeintrag „Common → Mode = Native".
+> Der Native KORG Mode wird **nicht** über das SETTING-Menü umgeschaltet,
+> sondern **vom Host per SysEx angefordert**:
+>
+> ```
+> F0 42 4g 6E 00 00 01 F7        ← Native KORG Mode In Request (Host → Gerät)
+> F0 42 4g 6E 00 00 00 F7        ← Native KORG Mode Out Request (zurück in MIDI-Mode)
+> ```
+>
+> Das Gerät antwortet mit `F0 42 4g 6E 00 40 00 03 F7` (= „bin jetzt im
+> Native Mode") und gibt die Kontrolle der LEDs an den Host ab.
+
+Das Setting-Menü deines microKONTROL (siehe das Screenshot-Foto aus der
+Bedienungsanleitung S. „Setting mode") besteht aus 16 Seiten:
+
+- Pad 1–8 → Scene-Parameter (Encoder/Slider/Pad/Pedal/Joystick/USB-Port-Assign)
+- Pad 9–16 → Global-Parameter (Keyboard-/PAD-Velocity, LCD-Backlight,
+  **PAD Illumination** (Pad 12), Transpose, **Global MIDI-Channel** (Pad 14),
+  Polarity, System)
+
+Ein „Native/MIDI-Mode"-Schalter existiert dort bewusst nicht — er ist
+ausschließlich Host-getrieben.
 
 ---
 
-## Schritt 3 — SysEx im Browser erlauben
+## Schritt 1 — Nichts am Gerät umstellen
 
-Beim nächsten Öffnen von ChordIT fragt der Browser
+Lass den microKONTROL in seinem Auslieferungs-MIDI-Mode. Prüfe nur:
+
+- **SETTING → Pad 14 (Global MIDI Channel)** → ggf. auf `1` (= `g = 0`) setzen.
+  ChordIT geht standardmäßig von Kanal 1 aus.
+- **SETTING → Pad 12 (PAD Illumination)** kannst du auf einem beliebigen Wert
+  lassen — sobald der Host Native-Mode anfordert, übernimmt er die Pads sowieso.
+
+Mit `EXIT` das Setting-Menü verlassen (Werte werden automatisch gespeichert).
+
+---
+
+## Schritt 2 — SysEx im Browser erlauben
+
+Beim Öffnen von ChordIT fragt der Browser
 **„Erlaubt die Seite, SysEx-Nachrichten zu senden?"** → **Zulassen**.
-Ohne SysEx-Erlaubnis funktioniert die LED-Steuerung **nicht** (Web-MIDI-Spec).
+
+Ohne SysEx-Erlaubnis kann ChordIT weder den Native-Mode-Request noch die
+LED-Updates senden (Web-MIDI-Spec).
 
 Falls du das versehentlich abgelehnt hast:
-- Chrome: Schloss-Symbol → „Website-Einstellungen" → MIDI auf *Zulassen*.
+- Chrome: Schloss-Symbol → „Website-Einstellungen" → MIDI → *Zulassen*.
 - Firefox: about:preferences#privacy → Berechtigungen → MIDI.
+
+Danach Seite einmal neu laden.
 
 ---
 
-## Schritt 4 — Pad-Mapping in ChordIT (nichts zu tun)
+## Schritt 3 — microKONTROL als MIDI-Output in ChordIT wählen
 
-Das Mapping ist hart verdrahtet auf die untere Pad-Hälfte:
+Settings → MIDI Output → `microKONTROL 1 PORT A` (oder wie das Gerät bei dir heißt).
+
+In dem Moment, in dem ChordIT den Output aktiviert, sendet es **automatisch**:
+
+1. `F0 42 40 6E 00 00 01 F7` — Native KORG Mode In Request
+2. 8 × `F0 42 40 6E 00 01 <ledNum> <state> F7` — Initial-Snapshot der Pads 9–16
+
+Du erkennst es daran, dass alle 16 LEDs **kurz aus** gehen (Modus-Wechsel) und
+dann nur die untere Hälfte gemäß ChordIT-State wieder anspringt.
+
+---
+
+## Schritt 4 — Pad-Mapping (nichts zu tun)
+
+Hart verdrahtet auf die untere Pad-Hälfte:
 
 | Pad | Funktion       | LED-Verhalten              |
 |----:|----------------|----------------------------|
@@ -76,59 +109,48 @@ Das Mapping ist hart verdrahtet auf die untere Pad-Hälfte:
 | 15  | Ext **M7**     | leuchtet wenn aktiviert    |
 | 16  | Ext **9**      | leuchtet wenn aktiviert    |
 
-> Pads 1–8 (obere Reihe) bleiben **dunkel** und sind frei für andere Funktionen
-> (z. B. Pattern-Trigger, Loop, Propose-Button …).
+> Pads 1–8 bleiben dunkel und sind frei. Sag Bescheid, dann mappe ich sie z. B.
+> auf Pattern-Trigger oder Propose.
 
 ---
 
-## Wie der Patch arbeitet (technisch)
+## Wie der Patch technisch arbeitet
 
-Pro LED schickt ChordIT eine **9-Byte SysEx**:
+Pro LED schickt ChordIT eine **9-Byte SysEx** (MIDI-Impl., Section 3-2 (1)):
 
 ```
 F0 42 4g 6E 00 01 <ledNum> <state> F7
 ```
 
-- `g` = globaler MIDI-Kanal (0–F)
+- `g` = globaler MIDI-Kanal (0..F)
 - `ledNum` = `00..0F` → Pad 1..16
 - `state` = `00` Off, `20` On, `40+t` OneShot, `60` Blink
 
-**Beispiel — Pad 11 (Maj) AN auf Kanal 1**:
-```
-F0 42 40 6E 00 01 0A 20 F7
-```
+Beispiel — Pad 11 (Maj) AN auf Kanal 1: `F0 42 40 6E 00 01 0A 20 F7`
+Beispiel — Pad 11 (Maj) AUS:           `F0 42 40 6E 00 01 0A 00 F7`
 
-**Beispiel — Pad 11 (Maj) AUS**:
-```
-F0 42 40 6E 00 01 0A 00 F7
-```
-
-ChordIT diffed bei jeder Zustandsänderung im Store, sendet also nur die
-LEDs, die sich tatsächlich geändert haben — kein SysEx-Flood.
-
----
-
-## Optional — Pads 1–8 ebenfalls vom Host steuern
-
-Wenn du z. B. Pattern 1–8 auf der oberen Reihe darstellen willst:
-ChordIT verwendet dieselbe SysEx, einfach `ledNum = 00..07` für Pads 1–8.
-Sag Bescheid, dann erweitere ich das Mapping.
+ChordIT diffed den Zustand im Store und sendet nur LEDs, die sich tatsächlich
+geändert haben — kein SysEx-Flood.
 
 ---
 
 ## Troubleshooting
 
-| Symptom                          | Ursache / Fix |
-|----------------------------------|---------------|
-| Pads bleiben dauerhaft an        | Gerät ist noch im **MIDI-Modus** — Schritt 1 wiederholen. |
-| LEDs reagieren gar nicht         | SysEx im Browser blockiert → Schritt 3. |
-| Falscher Pad leuchtet            | Globaler Kanal ≠ 1 → SETTING → MIDI Ch prüfen. |
-| Funktioniert nach Neustart nicht | „Write Global" wurde nicht ausgeführt — Schritt 1, letzter Hinweis. |
-| Pads senden falsche Noten        | Im Native Mode senden Pads SysEx, **keine** Note-Events. Du musst die Pad→Chord-Mappings in *ChordIT → Settings → MIDI Learn* nach dem Moduswechsel **einmal neu lernen** (eine kommende ChordIT-Version wird Native-Pad-SysEx automatisch routen). |
+| Symptom | Ursache / Fix |
+|---|---|
+| Pads bleiben dauerhaft an / reagieren nur lokal | Native-Mode-Request ist nicht angekommen → SysEx im Browser blockiert (Schritt 2) **oder** falscher Output gewählt (Schritt 3). |
+| LEDs gehen kurz aus und kommen nicht wieder | Initial-Snapshot wurde gesendet aber alle Pads sind „off" — passiert wenn ChordIT-State leer ist. Drück einmal einen Chord-Pad in der App. |
+| Falscher Pad leuchtet | Globaler Kanal ≠ 1 → SETTING → Pad 14 prüfen oder in ChordIT-Settings den Kanal anpassen. |
+| Nach Stromaus alles wieder „normal" | Korrekt — Native-Mode wird **nicht** persistent gespeichert. ChordIT fordert ihn bei jedem Connect neu an. |
+| Pads senden im Native-Mode keine Note-Events mehr | Stimmt — sie senden Pad-Output-SysEx (Function ID `45`). ChordIT routet das intern. Falls du das Gerät auch in anderer Software nutzt, dort vorher disconnecten oder ChordIT die „Mode Out"-SysEx senden lassen (Settings → MIDI → „Release microKONTROL"). |
 
 ---
 
 ## Rückbau
 
-SETTING ▸ Common ▸ Encoder 1 → **„Mode = MIDI"** ▸ ENTER ▸ „Write Global".
-Damit ist der Auslieferungszustand wieder hergestellt.
+In ChordIT: Settings → MIDI Output auf „—" setzen → ChordIT sendet
+`F0 42 40 6E 00 00 00 F7` (Native KORG Mode Out Request). Das Gerät ist sofort
+wieder im normalen MIDI-Mode.
+
+Alternativ: Gerät kurz aus- und einschalten — Native-Mode überlebt den
+Power-Cycle ohnehin nicht.
