@@ -196,6 +196,16 @@ export function SettingsScreen() {
     mapper.save();
   };
 
+  const applyMicroKontrolSceneMappings = () => {
+    mapper.reset();
+    DEFAULT_MIDI_MAPPINGS.forEach((mapping) => mapper.set(mapping));
+    const next = mapper.list();
+    setMappings(next);
+    s.setMidiMappings(next);
+    mapper.save();
+    setConfigMessage("ChordIT microKONTROL Scene-Mappings geladen — passend zu deinem Librarian-Screenshot.");
+  };
+
   const sendNativeModeAndLedSnapshot = (targetId = ledOutputId) => {
     if (!targetId) {
       setLedMessage("Kein SysEx-Output gewählt.");
@@ -511,7 +521,7 @@ export function SettingsScreen() {
                 ))}
               </select>
               <div className="text-[10px] text-muted-foreground">
-                Für Pad-LEDs muss hier microKONTROL PORT A stehen. Dein normaler MIDI-Output kann trotzdem ROLI bleiben.
+                Für Pad-LEDs muss hier microKONTROL PORT A stehen. Eine Librarian-Scene setzt nur den Input; LED-Steuerung bleibt SysEx.
               </div>
               <button
                 className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
@@ -582,6 +592,12 @@ export function SettingsScreen() {
         <div className="flex items-center justify-between p-3 border-b border-border">
           <div className="tracking-widest text-sm">MIDI MAPPINGS</div>
           <div className="flex gap-2">
+            <button
+              className="text-xs border border-border rounded px-2 py-1 hover:bg-accent"
+              onClick={applyMicroKontrolSceneMappings}
+            >
+              LOAD CHORDIT SCENE
+            </button>
             <button
               className="text-xs border border-border rounded px-2 py-1 hover:bg-accent"
               onClick={() => {
