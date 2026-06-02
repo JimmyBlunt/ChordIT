@@ -2,14 +2,16 @@
  * Runtime LED sync — subscribes to the chord/extension store and pushes
  * Display LED SysEx to the active MIDI output whenever the state changes.
  *
- * Requires the microKONTROL to be in Native KORG mode (see
- * /mnt/documents/microkontrol-led-patch.md for the install procedure).
+ * Automatically sends the Native KORG Mode In Request on start, so the user
+ * does NOT need to switch the controller manually (there is no menu entry for
+ * it — Native mode is host-initiated; see docs/microkontrol-led-patch.md).
  */
 import { useChorditStore } from "../app/store";
 import { midiBridge } from "./midiBridge";
 import {
   computeChordRowLedStates,
   diffLedStates,
+  nativeModeInRequestSysex,
   padLedSysex,
   type LedState,
 } from "./microKontrolLeds";
