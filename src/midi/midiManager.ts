@@ -97,6 +97,7 @@ export const midiManager = {
               }
               void import("./microKontrolNative").then((m) => m.startNativeInput((cb) => h.onSysEx(cb)));
               void import("./microKontrolLedSync").then((m) => m.startMicroKontrolLedSync(0));
+              void import("./microKontrolNative").then((m) => m.startSubLcdSync(0));
             }
           } catch {
             // store may not be hydrated yet; Settings will wire devices manually.
