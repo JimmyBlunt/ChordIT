@@ -9,7 +9,7 @@
 import { useChorditStore } from "../app/store";
 import { midiBridge } from "./midiBridge";
 import {
-  computeChordRowLedStates,
+  computeAllPadLedStates,
   diffLedStates,
   nativeModeInRequestSysex,
   nativeModeOutRequestSysex,
@@ -45,7 +45,7 @@ export async function runNativeModeInit(channel = 0): Promise<boolean> {
 /** Send the full lower-row LED snapshot (used on connect / scene change). */
 export function pushAllLeds(channel: number) {
   const s = useChorditStore.getState();
-  const next = computeChordRowLedStates(s.selectedChordType, s.activeExtensions);
+  const next = computeAllPadLedStates(s);
   for (const [pad, state] of next) {
     midiBridge.sendSysEx(padLedSysex(channel, pad, state));
   }
@@ -66,7 +66,7 @@ export async function startMicroKontrolLedSync(channel = 0): Promise<() => void>
   pushAllLeds(channel);
 
   unsub = useChorditStore.subscribe((s) => {
-    const next = computeChordRowLedStates(s.selectedChordType, s.activeExtensions);
+    const next = computeAllPadLedStates(s);
     const changes = diffLedStates(lastStates, next);
     for (const { pad, state } of changes) {
       midiBridge.sendSysEx(padLedSysex(channel, pad, state));
