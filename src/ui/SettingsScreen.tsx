@@ -151,7 +151,11 @@ export function SettingsScreen() {
     if (!handle) return;
     const savedIds =
       s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [];
-    const validIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
+    const savedValidIds = savedIds.filter((id) => handle.inputs.some((i) => i.id === id));
+    const portBInput = handle.inputs.find((i) => isMicroKontrolPortBInput(i.name)) ?? null;
+    const validIds = portBInput && !savedValidIds.includes(portBInput.id)
+      ? [...savedValidIds, portBInput.id]
+      : savedValidIds;
     if (validIds.length > 0) {
       midiManager.selectInputs(validIds);
       setInputIds(validIds);
@@ -165,17 +169,14 @@ export function SettingsScreen() {
       setBridgeActive(true);
       s.setMidiStatus(s.midiInputConnected, true);
     }
-    const ledOutput = handle.outputs.find((o) => isMicroKontrolPortA(o.name)) ?? null;
+    const ledOutput = handle.outputs.find((o) => isMicroKontrolCtrlOutput(o.name)) ?? null;
     let stopLedSync: (() => void) | null = null;
     let stopNativeInput: (() => void) | null = null;
-    let stopPadNotes: (() => void) | null = null;
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
       // Listen for native-mode pad/encoder/slider SysEx from CTRL input
       stopNativeInput = startNativeInput((cb) => handle.onSysEx(cb));
-      // Pads im Native Mode senden Notes 36..51 über Port B (siehe Python-Ref).
-      stopPadNotes = startNativePadNotes((cb) => midiManager.subscribe(cb));
       // Native init → start LED subscription → greeting on LCD
       void runNativeModeInit(0).then(async () => {
         stopLedSync = await startMicroKontrolLedSync(0);
@@ -194,7 +195,6 @@ export function SettingsScreen() {
       unsub();
       stopLedSync?.();
       stopNativeInput?.();
-      stopPadNotes?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);
