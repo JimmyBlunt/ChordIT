@@ -7,7 +7,7 @@ import type {
   VoicingMode,
 } from "../chord/chordTypes";
 import type { KeyName } from "../key/scales";
-import type { MidiMapping } from "../midi/midiTypes";
+import { DEFAULT_MIDI_MAPPINGS, type MidiMapping } from "../midi/midiTypes";
 import type { Pattern } from "../performance/patterns";
 import type {
   HarmonicMode,
