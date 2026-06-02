@@ -19,6 +19,8 @@ interface MIDIOutputLike {
   send: (data: number[]) => void;
 }
 
+export type SysExListener = (data: number[]) => void;
+
 export type WebMidiHandle = {
   access: AccessLike;
   inputs: { id: string; name: string }[];
@@ -32,6 +34,8 @@ export type WebMidiHandle = {
   selectOutput: (id: string | null) => void;
   /** Selects an independent raw SysEx output, used for controller LEDs. */
   selectSysExOutput: (id: string | null) => void;
+  /** Subscribe to raw SysEx packets (F0..F7) from any active input. */
+  onSysEx: (cb: SysExListener) => () => void;
   midiIn: MidiIn;
   midiOut: MidiOut;
 };
@@ -87,8 +91,14 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
     },
   };
 
+  const sysexListeners: SysExListener[] = [];
   const handleRaw = (data: Uint8Array | number[]) => {
-    const [status, d1, d2] = [data[0], data[1], data[2]];
+    const arr = Array.from(data);
+    if (arr[0] === 0xf0) {
+      for (const l of sysexListeners) l(arr);
+      return;
+    }
+    const [status, d1, d2] = [arr[0], arr[1], arr[2]];
     const channel = status & 0x0f;
     const kind = status & 0xf0;
     let msg: MidiMessage | null = null;
@@ -138,6 +148,13 @@ export async function initWebMidi(): Promise<WebMidiHandle | null> {
     },
     selectSysExOutput(id) {
       currentSysExOut = id ? access.outputs.get(id) ?? null : null;
+    },
+    onSysEx(cb) {
+      sysexListeners.push(cb);
+      return () => {
+        const i = sysexListeners.indexOf(cb);
+        if (i >= 0) sysexListeners.splice(i, 1);
+      };
     },
     midiIn,
     midiOut,

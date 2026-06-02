@@ -6,7 +6,8 @@ import { ALL_CONTROL_IDS, DEFAULT_MIDI_MAPPINGS, type ControlId, type MidiMappin
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
-import { pushAllLeds, runNativeModeInit, releaseNativeMode } from "@/midi/microKontrolLedSync";
+import { startMicroKontrolLedSync, runNativeModeInit, releaseNativeMode, pushAllLeds } from "@/midi/microKontrolLedSync";
+import { startNativeInput, showLcd } from "@/midi/microKontrolNative";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -161,10 +162,18 @@ export function SettingsScreen() {
       s.setMidiStatus(s.midiInputConnected, true);
     }
     const ledOutput = handle.outputs.find((o) => isMicroKontrolPortA(o.name)) ?? null;
+    let stopLedSync: (() => void) | null = null;
+    let stopNativeInput: (() => void) | null = null;
     if (ledOutput) {
       handle.selectSysExOutput(ledOutput.id);
       setLedOutputId(ledOutput.id);
-      void runNativeModeInit(0).then(() => pushAllLeds(0));
+      // Listen for native-mode pad/encoder/slider SysEx from CTRL input
+      stopNativeInput = startNativeInput((cb) => handle.onSysEx(cb));
+      // Native init → start LED subscription → greeting on LCD
+      void runNativeModeInit(0).then(async () => {
+        stopLedSync = await startMicroKontrolLedSync(0);
+        showLcd("CHORDIT", "READY", "green");
+      });
     }
     const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
@@ -174,7 +183,11 @@ export function SettingsScreen() {
         mapper.save();
       }
     });
-    return unsub;
+    return () => {
+      unsub();
+      stopLedSync?.();
+      stopNativeInput?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [handle, mapper]);
 
@@ -214,7 +227,9 @@ export function SettingsScreen() {
     if (handle && !midiBridge.hasTarget()) midiBridge.setTarget(handle.midiOut, `SysEx → ${name}`);
     setLedMessage(`Sende Native-Mode-Init an ${name}…`);
     const sent = await runNativeModeInit(0);
+    await startMicroKontrolLedSync(0);
     pushAllLeds(0);
+    showLcd("CHORDIT", "READY", "green");
     setLedMessage(
       sent
         ? `Native Mode + 4-Packet Init + LED-Snapshot an ${name} gesendet.`
