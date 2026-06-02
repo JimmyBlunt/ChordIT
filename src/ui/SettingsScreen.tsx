@@ -334,7 +334,7 @@ export function SettingsScreen() {
         <StatusCard
           label="BRIDGE"
           status={bridgeActive ? "online" : "offline"}
-          text={bridgeActive ? "Aktiv" : "Inaktiv"}
+          text={bridgeActive ? `Aktiv → ${bridgeTargetName || "Output"}` : "Inaktiv"}
         />
       </section>
 
@@ -459,6 +459,48 @@ export function SettingsScreen() {
                 }}
               >
                 TEST NOTE (C4)
+              </button>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              {midiError ?? "Initialisiere…"}
+            </div>
+          )}
+        </Field>
+
+        <Field label="microKONTROL LED / SYS EX OUTPUT">
+          {handle ? (
+            <div className="flex flex-col gap-2">
+              <select
+                className="bg-card border border-border px-2 py-1 rounded"
+                value={ledOutputId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setLedOutputId(id);
+                  handle.selectSysExOutput(id || null);
+                  if (id) {
+                    midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+                    pushAllLeds(0);
+                  }
+                }}
+              >
+                <option value="">— Auto/None —</option>
+                {handle.outputs.filter((o) => isMicroKontrol(o.name)).map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+              <div className="text-[10px] text-muted-foreground">
+                Für Pad-LEDs muss hier microKONTROL PORT A stehen. Dein normaler MIDI-Output kann trotzdem ROLI bleiben.
+              </div>
+              <button
+                className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
+                disabled={!ledOutputId}
+                onClick={() => {
+                  midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+                  pushAllLeds(0);
+                }}
+              >
+                NATIVE MODE + LED SNAPSHOT SENDEN
               </button>
             </div>
           ) : (
