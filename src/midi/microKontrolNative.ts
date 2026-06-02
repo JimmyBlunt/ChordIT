@@ -228,7 +228,7 @@ export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () =
  */
 type MidiMsgLike = { type: string; note?: number; velocity?: number };
 
-export function isNativePadNoteNumber(note: number | undefined): boolean {
+export function isNativePadNoteNumber(note: number | undefined): note is number {
   return note !== undefined && note >= 36 && note <= 51;
 }
 
