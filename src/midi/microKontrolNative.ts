@@ -221,32 +221,39 @@ function handleEncoder(index: number, delta: number) {
   switch (index) {
     case 0:
       s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, delta));
+      showControlValue(1, "PERFORM", useChorditStore.getState().performanceMode);
       showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
       return;
     case 1:
       s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, delta));
+      showControlValue(2, "VOICING", useChorditStore.getState().voicingMode);
       showLcd("VOICING", useChorditStore.getState().voicingMode.toUpperCase());
       return;
     case 2:
       if (!s.keyModeEnabled) {
+        showControlValue(3, "KEY", "LOCK OFF", "red");
         showLcd("KEY LOCK", "OFF");
         return;
       }
       s.setSelectedKey(cycle(ALL_KEYS, s.selectedKey, delta));
+      showControlValue(3, "KEY", useChorditStore.getState().selectedKey);
       showLcd("KEY", useChorditStore.getState().selectedKey);
       return;
     case 3: {
       const next = Math.min(16, Math.max(4, s.loopLength + (delta > 0 ? 1 : -1)));
       s.setLoopLength(next);
+      showControlValue(4, "LOOPLEN", `${next}`);
       showLcd("LOOP LEN", `${next}`);
       return;
     }
     case 4:
       s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, delta));
+      showControlValue(5, "STYLE", useChorditStore.getState().harmonicStyle);
       showLcd("STYLE", useChorditStore.getState().harmonicStyle.toUpperCase());
       return;
     case 5:
       s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, delta));
+      showControlValue(6, "MOOD", String(useChorditStore.getState().moodTarget));
       showLcd("MOOD", String(useChorditStore.getState().moodTarget).toUpperCase());
       return;
     case 6: {
@@ -255,12 +262,14 @@ function handleEncoder(index: number, delta: number) {
       const cur = s.activeProgressionPresetId ?? ids[0];
       const nextId = cycle(ids, cur, delta);
       s.setActiveProgressionPresetId(nextId);
+      showControlValue(7, "PROG", nextId.slice(0, 8));
       showLcd("PROG", nextId.slice(0, 8).toUpperCase());
       return;
     }
     case 7: {
       const next = Math.max(40, Math.min(240, s.performanceParams.bpm + (delta > 0 ? 1 : -1)));
       s.setPerformanceParams({ bpm: next });
+      showControlValue(8, "BPM", `${next}`);
       showLcd("BPM", `${next}`);
       return;
     }
