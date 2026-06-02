@@ -6,6 +6,8 @@ import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTy
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
+import { pushAllLeds } from "@/midi/microKontrolLedSync";
+import { nativeModeInRequestSysex } from "@/midi/microKontrolLeds";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -44,19 +46,19 @@ function isValidMapping(value: unknown): value is MidiMapping {
   );
 }
 
+function isMicroKontrolPortA(name: string) {
+  return /microkontrol/i.test(name) && /port\s*a/i.test(name);
+}
+
+function isMicroKontrol(name: string) {
+  return /microkontrol/i.test(name);
+}
+
 export function SettingsScreen() {
   useChordIT({ hardwareInput: true });
   const s = useChorditStore();
   const mapper = useMemo(() => {
-    const m = new MidiMapper();
-    const loaded = m.load();
-    if (loaded.length === 0 && s.midiMappings.length > 0) {
-      s.midiMappings.forEach((mapping) => m.set(mapping));
-      m.save();
-    }
-    return m;
-    // Create once from persisted state; recreating would interrupt learn mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return new MidiMapper(useChorditStore.getState().midiMappings);
   }, []);
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
@@ -65,6 +67,7 @@ export function SettingsScreen() {
     s.midiInputIds.length > 0 ? s.midiInputIds : s.midiInputId ? [s.midiInputId] : [],
   );
   const [outputId, setOutputId] = useState<string>(s.midiOutputId);
+  const [ledOutputId, setLedOutputId] = useState<string>("");
   const [midiError, setMidiError] = useState<string | null>(null);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
 
@@ -72,11 +75,30 @@ export function SettingsScreen() {
     s.setMidiMappings(mappings);
   }, [mappings]);
 
+  useEffect(() => {
+    const loaded = mapper.load();
+    if (loaded.length > 0) {
+      setMappings(mapper.list());
+      s.setMidiMappings(mapper.list());
+    } else if (s.midiMappings.length > 0) {
+      s.midiMappings.forEach((mapping) => mapper.set(mapping));
+      mapper.save();
+      setMappings(mapper.list());
+    }
+    // Load browser-only mapping storage after mount to keep SSR/client markup identical.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapper]);
+
   // Detect iframe AFTER mount to avoid SSR/CSR hydration mismatch.
   const [inIframe, setInIframe] = useState(false);
   const [bridgeActive, setBridgeActive] = useState(midiBridge.hasTarget());
+  const [bridgeTargetName, setBridgeTargetName] = useState(midiBridge.getTargetName());
   useEffect(() => {
     setInIframe(window.self !== window.top);
+    return midiBridge.onTargetChange((name) => {
+      setBridgeActive(midiBridge.hasTarget());
+      setBridgeTargetName(name);
+    });
   }, []);
 
   const initMidi = () => {
@@ -132,10 +154,18 @@ export function SettingsScreen() {
     }
     if (s.midiOutputId && handle.outputs.some((o) => o.id === s.midiOutputId)) {
       midiManager.selectOutput(s.midiOutputId);
-      midiBridge.setTarget(handle.midiOut);
+      const outputName = handle.outputs.find((o) => o.id === s.midiOutputId)?.name ?? s.midiOutputId;
+      midiBridge.setTarget(handle.midiOut, outputName);
       setOutputId(s.midiOutputId);
       setBridgeActive(true);
       s.setMidiStatus(s.midiInputConnected, true);
+    }
+    const ledOutput = handle.outputs.find((o) => isMicroKontrolPortA(o.name)) ?? null;
+    if (ledOutput) {
+      handle.selectSysExOutput(ledOutput.id);
+      setLedOutputId(ledOutput.id);
+      midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+      pushAllLeds(0);
     }
     const unsub = midiManager.subscribe((msg) => {
       const { learned } = mapper.handle(msg);
@@ -220,7 +250,8 @@ export function SettingsScreen() {
       s.setMidiDeviceIds(nextInputIds[0] ?? "", nextOutputId);
       if (handle) {
         handle.selectOutput(nextOutputId || null);
-        midiBridge.setTarget(nextOutputId ? handle.midiOut : null);
+        const outputName = handle.outputs.find((o) => o.id === nextOutputId)?.name ?? nextOutputId;
+        midiBridge.setTarget(nextOutputId ? handle.midiOut : null, outputName);
         setBridgeActive(!!nextOutputId);
       }
 
@@ -309,7 +340,7 @@ export function SettingsScreen() {
         <StatusCard
           label="BRIDGE"
           status={bridgeActive ? "online" : "offline"}
-          text={bridgeActive ? "Aktiv" : "Inaktiv"}
+          text={bridgeActive ? `Aktiv → ${bridgeTargetName || "Output"}` : "Inaktiv"}
         />
       </section>
 
@@ -409,7 +440,8 @@ export function SettingsScreen() {
                   const id = e.target.value;
                   setOutputId(id);
                   handle.selectOutput(id || null);
-                  midiBridge.setTarget(id ? handle.midiOut : null);
+                  const outputName = handle.outputs.find((o) => o.id === id)?.name ?? id;
+                  midiBridge.setTarget(id ? handle.midiOut : null, outputName);
                   setBridgeActive(!!id);
                   s.setMidiStatus(s.midiInputConnected, !!id);
                   s.setMidiDeviceIds(s.midiInputId, id);
@@ -433,6 +465,48 @@ export function SettingsScreen() {
                 }}
               >
                 TEST NOTE (C4)
+              </button>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground">
+              {midiError ?? "Initialisiere…"}
+            </div>
+          )}
+        </Field>
+
+        <Field label="microKONTROL LED / SYS EX OUTPUT">
+          {handle ? (
+            <div className="flex flex-col gap-2">
+              <select
+                className="bg-card border border-border px-2 py-1 rounded"
+                value={ledOutputId}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setLedOutputId(id);
+                  handle.selectSysExOutput(id || null);
+                  if (id) {
+                    midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+                    pushAllLeds(0);
+                  }
+                }}
+              >
+                <option value="">— Auto/None —</option>
+                {handle.outputs.filter((o) => isMicroKontrol(o.name)).map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+              <div className="text-[10px] text-muted-foreground">
+                Für Pad-LEDs muss hier microKONTROL PORT A stehen. Dein normaler MIDI-Output kann trotzdem ROLI bleiben.
+              </div>
+              <button
+                className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
+                disabled={!ledOutputId}
+                onClick={() => {
+                  midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+                  pushAllLeds(0);
+                }}
+              >
+                NATIVE MODE + LED SNAPSHOT SENDEN
               </button>
             </div>
           ) : (
