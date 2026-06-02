@@ -114,18 +114,21 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (!dir) return;
       const next = Math.min(16, Math.max(4, s.loopLength + dir));
       s.setLoopLength(next);
+      showLcd("LOOP LEN", `${next}`);
       return;
     }
     case "dial.style": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, dir));
+      showLcd("STYLE", useChorditStore.getState().harmonicStyle.toUpperCase());
       return;
     }
     case "dial.mood": {
       const dir = dialDirection(msg, id);
       if (!dir) return;
       s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, dir));
+      showLcd("MOOD", String(useChorditStore.getState().moodTarget).toUpperCase());
       return;
     }
     case "dial.progression": {
@@ -134,7 +137,9 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       const ids = progressionPresets.map((p) => p.id);
       if (ids.length === 0) return;
       const cur = s.activeProgressionPresetId ?? ids[0];
-      s.setActiveProgressionPresetId(cycle(ids, cur, dir));
+      const nextId = cycle(ids, cur, dir);
+      s.setActiveProgressionPresetId(nextId);
+      showLcd("PROG", nextId.slice(0, 8).toUpperCase());
       return;
     }
     case "slider.rhythm": {
@@ -151,6 +156,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       if (idx !== s.performanceParams.patternIndex) {
         s.setPerformanceParams({ patternIndex: idx });
       }
+      showLcd("RHYTHM", `PAT ${idx + 1}`);
       // Remember the last raw value so dialDirection stays consistent if reused.
       lastCc.set(id, value);
       return;
@@ -177,6 +183,7 @@ function dispatch(id: ControlId, msg: MidiMessage) {
         });
       }
       s.setVoicingShiftValue(target);
+      showLcd("V.SHIFT", `${target >= 0 ? "+" : ""}${target}`);
       lastCc.set(id, value);
       return;
     }
