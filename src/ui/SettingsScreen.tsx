@@ -491,8 +491,10 @@ export function SettingsScreen() {
                 }}
               >
                 <option value="">— Auto/None —</option>
-                {handle.outputs.filter((o) => isMicroKontrol(o.name)).map((o) => (
-                  <option key={o.id} value={o.id}>{o.name}</option>
+                {handle.outputs.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {isMicroKontrol(o.name) ? "★ " : ""}{o.name}
+                  </option>
                 ))}
               </select>
               <div className="text-[10px] text-muted-foreground">
