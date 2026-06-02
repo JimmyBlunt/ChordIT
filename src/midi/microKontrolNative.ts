@@ -231,6 +231,22 @@ function handleEncoder(index: number, delta: number) {
       showLcd("PROG", nextId.slice(0, 8).toUpperCase());
       return;
     }
+    case 7: {
+      const next = Math.max(40, Math.min(240, s.performanceParams.bpm + (delta > 0 ? 1 : -1)));
+      s.setPerformanceParams({ bpm: next });
+      showLcd("BPM", `${next}`);
+      return;
+    }
+  }
+}
+      const ids = progressionPresets.map((p) => p.id);
+      if (ids.length === 0) return;
+      const cur = s.activeProgressionPresetId ?? ids[0];
+      const nextId = cycle(ids, cur, delta);
+      s.setActiveProgressionPresetId(nextId);
+      showLcd("PROG", nextId.slice(0, 8).toUpperCase());
+      return;
+    }
   }
 }
 
