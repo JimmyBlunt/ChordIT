@@ -7,7 +7,7 @@ import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
 import { startMicroKontrolLedSync, runNativeModeInit, releaseNativeMode, pushAllLeds } from "@/midi/microKontrolLedSync";
-import { startNativeInput, startNativePadNotes, showLcd } from "@/midi/microKontrolNative";
+import { startNativeInput, showLcd } from "@/midi/microKontrolNative";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
 import { MappingDiagram } from "@/ui/MappingDiagram";
 
@@ -46,8 +46,12 @@ function isValidMapping(value: unknown): value is MidiMapping {
   );
 }
 
-function isMicroKontrolPortA(name: string) {
-  return /microkontrol/i.test(name) && /port\s*a/i.test(name);
+function isMicroKontrolCtrlOutput(name: string) {
+  return (/microkontrol/i.test(name) && /ctrl/i.test(name)) || /^ctrl$/i.test(name.trim());
+}
+
+function isMicroKontrolPortBInput(name: string) {
+  return (/microkontrol/i.test(name) && /port\s*b/i.test(name)) || /^port\s*b$/i.test(name.trim());
 }
 
 function isMicroKontrol(name: string) {
