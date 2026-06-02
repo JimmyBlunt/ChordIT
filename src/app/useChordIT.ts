@@ -77,15 +77,14 @@ export function useChordIT(options: { hardwareInput?: boolean } = {}) {
   const engineRef = useRef(getSharedEngine(store.performanceParams.bpm));
 
   useEffect(() => {
-    void useChorditStore.persist.rehydrate().then(() => {
-      // Seed default microKONTROL mappings for users with empty persisted state.
+    void (async () => {
+      await Promise.resolve(useChorditStore.persist.rehydrate());
       const st = useChorditStore.getState();
       if (!st.midiMappings || st.midiMappings.length === 0) {
-        import("../midi/midiTypes").then(({ DEFAULT_MIDI_MAPPINGS }) => {
-          useChorditStore.getState().setMidiMappings(DEFAULT_MIDI_MAPPINGS);
-        });
+        const { DEFAULT_MIDI_MAPPINGS } = await import("../midi/midiTypes");
+        useChorditStore.getState().setMidiMappings(DEFAULT_MIDI_MAPPINGS);
       }
-    });
+    })();
   }, []);
 
   // Drive the mock clock in real time so arp/pattern modes work in the live UI.
