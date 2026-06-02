@@ -26,6 +26,11 @@ class MidiBridge implements MidiOut {
     }
     this.target?.send(event);
   }
+
+  /** Forward a raw SysEx payload to the active output (e.g. microKONTROL LEDs). */
+  sendSysEx(data: number[]) {
+    this.target?.sendSysEx?.(data);
+  }
 }
 
 export const midiBridge = new MidiBridge();
