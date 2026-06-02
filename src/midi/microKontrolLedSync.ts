@@ -34,7 +34,9 @@ export function pushAllLeds(channel: number) {
 export function startMicroKontrolLedSync(channel = 0): () => void {
   if (started) return () => {};
   started = true;
-  // Initial snapshot so the LEDs match the current state immediately.
+  // 1. Ask the controller to enter Native KORG mode so the host owns the LEDs.
+  midiBridge.sendSysEx(nativeModeInRequestSysex(channel));
+  // 2. Initial snapshot so the LEDs match the current state immediately.
   pushAllLeds(channel);
 
   unsub = useChorditStore.subscribe((s) => {
