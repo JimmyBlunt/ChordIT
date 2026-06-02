@@ -125,13 +125,21 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       return;
     }
     case "slider.rhythm": {
-      // Rhythm/Groove slider: cycle the active pattern index on direction change.
-      const dir = dialDirection(msg, id);
-      if (!dir) return;
-      if (PATTERNS.length === 0) return;
-      const cur = s.performanceParams.patternIndex;
-      const next = (cur + dir + PATTERNS.length) % PATTERNS.length;
-      s.setPerformanceParams({ patternIndex: next });
+      // Rhythm/Groove slider: absolute mapping — slider range (0..127) is split
+      // into N equal segments where N = total available patterns. Each segment
+      // selects exactly one preset, so moving the slider across the full range
+      // sweeps once through all presets (not per-tick cycling).
+      if (msg.type !== "cc" && msg.type !== "noteOn") return;
+      const value = msg.type === "cc" ? msg.value : msg.velocity;
+      const total = PATTERNS.length + s.userPatterns.length;
+      if (total === 0) return;
+      // Map 0..127 → 0..total-1 by equal segments.
+      const idx = Math.min(total - 1, Math.floor((value / 128) * total));
+      if (idx !== s.performanceParams.patternIndex) {
+        s.setPerformanceParams({ patternIndex: idx });
+      }
+      // Remember the last raw value so dialDirection stays consistent if reused.
+      lastCc.set(id, value);
       return;
     }
     case "slider.voicingShift": {
