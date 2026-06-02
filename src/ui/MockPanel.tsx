@@ -109,7 +109,7 @@ export function MockPanel({
                   : "border-border hover:border-pad-active/50"
               }`}
             >
-              {c}
+              {electronic ? CHORD_LABEL_ELECTRONIC[c] : c}
             </button>
           ))}
         </div>
@@ -117,6 +117,19 @@ export function MockPanel({
         <div className="col-span-6 grid grid-cols-4 gap-2">
           {EXTS.map((e) => (
             <button
+              key={e}
+              data-control={`ext.${e}`}
+              onClick={() => s.toggleExtension(e)}
+              className={`py-4 rounded-full border text-xs tracking-widest ${
+                s.activeExtensions.includes(e)
+                  ? "bg-pad-active text-background border-pad-active"
+                  : "border-border hover:border-pad-active/50"
+              }`}
+            >
+              {electronic ? EXT_LABEL_ELECTRONIC[e] : e}
+            </button>
+          ))}
+        </div>
               key={e}
               data-control={`ext.${e}`}
               onClick={() => s.toggleExtension(e)}
