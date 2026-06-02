@@ -5,9 +5,16 @@ import {
   diffLedStates,
   DEFAULT_CHORD_PADS,
   DEFAULT_EXTENSION_PADS,
+  nativeModeInRequestSysex,
 } from "@/midi/microKontrolLeds";
 
 describe("microKontrolLeds — SysEx builder", () => {
+  it("encodes Native KORG mode in request with the required padding byte", () => {
+    expect(nativeModeInRequestSysex(0)).toEqual([
+      0xf0, 0x42, 0x40, 0x6e, 0x00, 0x00, 0x00, 0x01, 0xf7,
+    ]);
+  });
+
   it("encodes ON for pad 11 on global channel 0 (Maj default)", () => {
     expect(padLedSysex(0, 11, "on")).toEqual([
       0xf0, 0x42, 0x40, 0x6e, 0x00, 0x01, 0x0a, 0x20, 0xf7,

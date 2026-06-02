@@ -85,19 +85,19 @@ export function computeChordRowLedStates(
 /**
  * Native KORG Mode In Request (Host -> Controller).
  * Reference: microKONTROL MIDI Implementation, Section 3 (15).
- *   F0 42 4g 6E 00 00 01 F7
+ *   F0 42 4g 6E 00 00 00 01 F7
  * Sending this puts the controller into Native KORG mode, which is required
  * for the Display LED SysEx (Section 3 (15)/(16)) to take effect.
  */
 export function nativeModeInRequestSysex(globalChannel = 0): number[] {
   const g = globalChannel & 0x0f;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x01, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0x01, 0xf7];
 }
 
 /** Native KORG Mode Out Request — returns the controller to normal MIDI mode. */
 export function nativeModeOutRequestSysex(globalChannel = 0): number[] {
   const g = globalChannel & 0x0f;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0x00, 0xf7];
 }
 
 /**

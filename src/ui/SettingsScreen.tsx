@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useChordIT } from "@/app/useChordIT";
 import { useChorditStore, type State } from "@/app/store";
 import { MidiMapper } from "@/midi/midiMapper";
-import { ALL_CONTROL_IDS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
+import { ALL_CONTROL_IDS, DEFAULT_MIDI_MAPPINGS, type ControlId, type MidiMapping } from "@/midi/midiTypes";
 import { type WebMidiHandle } from "@/midi/webMidi";
 import { midiBridge } from "@/midi/midiBridge";
 import { midiManager } from "@/midi/midiManager";
@@ -58,7 +58,7 @@ export function SettingsScreen() {
   useChordIT({ hardwareInput: true });
   const s = useChorditStore();
   const mapper = useMemo(() => {
-    return new MidiMapper(useChorditStore.getState().midiMappings);
+    return new MidiMapper(DEFAULT_MIDI_MAPPINGS);
   }, []);
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
@@ -70,6 +70,7 @@ export function SettingsScreen() {
   const [ledOutputId, setLedOutputId] = useState<string>("");
   const [midiError, setMidiError] = useState<string | null>(null);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
+  const [ledMessage, setLedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     s.setMidiMappings(mappings);
@@ -193,6 +194,19 @@ export function SettingsScreen() {
     mapper.set({ controlId: id, inputType: type, channel, number });
     setMappings(mapper.list());
     mapper.save();
+  };
+
+  const sendNativeModeAndLedSnapshot = (targetId = ledOutputId) => {
+    if (!targetId) {
+      setLedMessage("Kein SysEx-Output gewählt.");
+      return;
+    }
+    handle?.selectSysExOutput(targetId);
+    const name = handle?.outputs.find((o) => o.id === targetId)?.name ?? "Output";
+    if (handle && !midiBridge.hasTarget()) midiBridge.setTarget(handle.midiOut, `SysEx → ${name}`);
+    const sent = midiBridge.sendSysEx(nativeModeInRequestSysex(0));
+    pushAllLeds(0);
+    setLedMessage(sent ? `Gesendet an ${name}.` : `Nicht gesendet — ${name} ist nicht erreichbar oder SysEx ist blockiert.`);
   };
 
   const exportConfig = () => {
@@ -485,8 +499,7 @@ export function SettingsScreen() {
                   setLedOutputId(id);
                   handle.selectSysExOutput(id || null);
                   if (id) {
-                    midiBridge.sendSysEx(nativeModeInRequestSysex(0));
-                    pushAllLeds(0);
+                    sendNativeModeAndLedSnapshot(id);
                   }
                 }}
               >
@@ -503,13 +516,13 @@ export function SettingsScreen() {
               <button
                 className="text-[10px] px-2 py-1 border border-border rounded hover:bg-accent self-start"
                 disabled={!ledOutputId}
-                onClick={() => {
-                  midiBridge.sendSysEx(nativeModeInRequestSysex(0));
-                  pushAllLeds(0);
-                }}
+                onClick={() => sendNativeModeAndLedSnapshot()}
               >
                 NATIVE MODE + LED SNAPSHOT SENDEN
               </button>
+              {ledMessage && (
+                <div className="text-[10px] text-emerald-400">{ledMessage}</div>
+              )}
             </div>
           ) : (
             <div className="text-xs text-muted-foreground">
