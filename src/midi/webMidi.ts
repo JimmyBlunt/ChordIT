@@ -19,6 +19,8 @@ interface MIDIOutputLike {
   send: (data: number[]) => void;
 }
 
+export type SysExListener = (data: number[]) => void;
+
 export type WebMidiHandle = {
   access: AccessLike;
   inputs: { id: string; name: string }[];
@@ -32,6 +34,8 @@ export type WebMidiHandle = {
   selectOutput: (id: string | null) => void;
   /** Selects an independent raw SysEx output, used for controller LEDs. */
   selectSysExOutput: (id: string | null) => void;
+  /** Subscribe to raw SysEx packets (F0..F7) from any active input. */
+  onSysEx: (cb: SysExListener) => () => void;
   midiIn: MidiIn;
   midiOut: MidiOut;
 };
