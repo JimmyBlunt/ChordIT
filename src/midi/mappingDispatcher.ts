@@ -253,6 +253,36 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       lastCc.set(id, value);
       return;
     }
+    case "slider.harp": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.round(5 + (value / 127) * 95);
+      s.setPerformanceParams({ harpDeltaMs: next });
+      showControlValue(6, "HARP", `${next}MS`);
+      showLcd("HARP", `${next}MS`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.harpOctaves": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.max(1, Math.min(4, Math.round(1 + (value / 127) * 3)));
+      s.setPerformanceParams({ harpOctaves: next });
+      showControlValue(7, "HARP OCT", `${next}`);
+      showLcd("HARP OCT", `${next}`);
+      lastCc.set(id, value);
+      return;
+    }
+    case "slider.octaveBase": {
+      const value = ccValue(msg);
+      if (value === null) return;
+      const next = Math.max(24, Math.min(84, Math.round(24 + (value / 127) * 60)));
+      s.setOctaveBase(next);
+      showControlValue(8, "OCTBASE", `${next}`);
+      showLcd("OCT BASE", `${next}`);
+      lastCc.set(id, value);
+      return;
+    }
     case "button.mode": {
       if (!isTrigger(msg)) return;
       s.setHarmonicMode(cycle(ALL_HARMONIC_MODES, s.harmonicMode, 1));
