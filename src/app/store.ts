@@ -50,6 +50,8 @@ export type State = {
   voicingMode: VoicingMode;
   splitKey: number;
   octaveBase: number;
+  /** Visual voicing-shift slider position (-6..+6). Snaps back to 0 on release. */
+  voicingShiftValue: number;
 
   keyModeEnabled: boolean;
   selectedKey: KeyName;
@@ -94,6 +96,7 @@ export type Actions = {
   setVoicingMode: (m: VoicingMode) => void;
   setSplitKey: (n: number) => void;
   setOctaveBase: (n: number) => void;
+  setVoicingShiftValue: (n: number) => void;
   toggleKeyMode: () => void;
   setSelectedKey: (k: KeyName) => void;
   setMidiMappings: (m: MidiMapping[]) => void;
@@ -141,6 +144,7 @@ export const useChorditStore = create<State & Actions>()(
       voicingMode: "Split",
       splitKey: 60,
       octaveBase: 60,
+      voicingShiftValue: 0,
 
       keyModeEnabled: false,
       selectedKey: "C",
@@ -187,6 +191,7 @@ export const useChorditStore = create<State & Actions>()(
       setVoicingMode: (m) => set({ voicingMode: m }),
       setSplitKey: (n) => set({ splitKey: n }),
       setOctaveBase: (n) => set({ octaveBase: n }),
+      setVoicingShiftValue: (n) => set({ voicingShiftValue: Math.max(-6, Math.min(6, n)) }),
       toggleKeyMode: () => set((s) => ({ keyModeEnabled: !s.keyModeEnabled })),
       setSelectedKey: (k) => set({ selectedKey: k }),
       setMidiMappings: (m) => set({ midiMappings: m }),

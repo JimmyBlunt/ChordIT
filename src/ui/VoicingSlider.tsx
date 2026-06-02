@@ -1,21 +1,27 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useChorditStore } from "@/app/store";
 
 /**
  * Centered voicing slider: middle = 0. Drag up to shift voicing up,
  * drag down to shift voicing down. Each step away from 0 fires
- * voicingShift once. Snaps back to 0 on release.
- *
- * Rendered vertically (top = up, bottom = down) using rotate.
+ * voicingShift once. The slider position lives in the global store so
+ * MIDI hardware input visually moves the on-screen slider too.
+ * Snaps back to 0 on release.
  */
 export function VoicingSlider({
   onShift,
 }: {
   onShift: (delta: 1 | -1) => void;
 }) {
-  const [val, setVal] = useState(0);
-  const lastRef = useRef(0);
+  const val = useChorditStore((s) => s.voicingShiftValue);
+  const setVal = useChorditStore((s) => s.setVoicingShiftValue);
+  const lastRef = useRef(val);
   const currentNotes = useChorditStore((s) => s.currentChordNotes);
+
+  // Keep lastRef in sync with external (MIDI) updates without firing shifts.
+  if (lastRef.current !== val && Math.abs(lastRef.current - val) > 6) {
+    lastRef.current = val;
+  }
 
   const handleChange = (next: number) => {
     const last = lastRef.current;
@@ -33,7 +39,6 @@ export function VoicingSlider({
     setVal(0);
   };
 
-  // Display lowest..highest note range
   const lo = currentNotes[0];
   const hi = currentNotes[currentNotes.length - 1];
 
