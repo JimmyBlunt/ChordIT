@@ -68,7 +68,8 @@ export const midiManager = {
             }
             if (s.midiOutputId && h.outputs.some((o) => o.id === s.midiOutputId)) {
               h.selectOutput(s.midiOutputId);
-              midiBridge.setTarget(h.midiOut);
+              const outputName = h.outputs.find((o) => o.id === s.midiOutputId)?.name ?? s.midiOutputId;
+              midiBridge.setTarget(h.midiOut, outputName);
               s.setMidiStatus(s.midiInputConnected, true);
             }
           } catch {
