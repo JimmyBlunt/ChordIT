@@ -191,6 +191,7 @@ export const useChorditStore = create<State & Actions>()(
       setVoicingMode: (m) => set({ voicingMode: m }),
       setSplitKey: (n) => set({ splitKey: n }),
       setOctaveBase: (n) => set({ octaveBase: n }),
+      setVoicingShiftValue: (n) => set({ voicingShiftValue: Math.max(-6, Math.min(6, n)) }),
       toggleKeyMode: () => set((s) => ({ keyModeEnabled: !s.keyModeEnabled })),
       setSelectedKey: (k) => set({ selectedKey: k }),
       setMidiMappings: (m) => set({ midiMappings: m }),
