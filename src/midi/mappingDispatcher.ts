@@ -103,6 +103,53 @@ function dispatch(id: ControlId, msg: MidiMessage) {
       s.setLoopLength(next);
       return;
     }
+    case "dial.style": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, dir));
+      return;
+    }
+    case "dial.mood": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      s.setMoodTarget(cycle(ALL_MOOD_TARGETS, s.moodTarget, dir));
+      return;
+    }
+    case "dial.progression": {
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      const ids = progressionPresets.map((p) => p.id);
+      if (ids.length === 0) return;
+      const cur = s.activeProgressionPresetId ?? ids[0];
+      s.setActiveProgressionPresetId(cycle(ids, cur, dir));
+      return;
+    }
+    case "slider.rhythm": {
+      // Rhythm/Groove slider: cycle the active pattern index on direction change.
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      if (PATTERNS.length === 0) return;
+      const cur = s.performanceParams.patternIndex;
+      const next = (cur + dir + PATTERNS.length) % PATTERNS.length;
+      s.setPerformanceParams({ patternIndex: next });
+      return;
+    }
+    case "slider.voicingShift": {
+      // Voicing shift slider: each direction step shifts the split-key/octave-base by one semitone.
+      const dir = dialDirection(msg, id);
+      if (!dir) return;
+      if (s.voicingMode === "Octave") {
+        s.setOctaveBase(Math.min(96, Math.max(24, s.octaveBase + dir)));
+      } else {
+        s.setSplitKey(Math.min(96, Math.max(24, s.splitKey + dir)));
+      }
+      return;
+    }
+    case "button.mode": {
+      if (!isTrigger(msg)) return;
+      s.setHarmonicMode(cycle(ALL_HARMONIC_MODES, s.harmonicMode, 1));
+      return;
+    }
     case "toggle.perform": {
       if (!isTrigger(msg)) return;
       s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, 1));
