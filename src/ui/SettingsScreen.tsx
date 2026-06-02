@@ -58,15 +58,7 @@ export function SettingsScreen() {
   useChordIT({ hardwareInput: true });
   const s = useChorditStore();
   const mapper = useMemo(() => {
-    const m = new MidiMapper();
-    const loaded = m.load();
-    if (loaded.length === 0 && s.midiMappings.length > 0) {
-      s.midiMappings.forEach((mapping) => m.set(mapping));
-      m.save();
-    }
-    return m;
-    // Create once from persisted state; recreating would interrupt learn mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return new MidiMapper(useChorditStore.getState().midiMappings);
   }, []);
   const [mappings, setMappings] = useState<MidiMapping[]>(mapper.list());
   const [learning, setLearning] = useState<ControlId | null>(null);
@@ -82,6 +74,20 @@ export function SettingsScreen() {
   useEffect(() => {
     s.setMidiMappings(mappings);
   }, [mappings]);
+
+  useEffect(() => {
+    const loaded = mapper.load();
+    if (loaded.length > 0) {
+      setMappings(mapper.list());
+      s.setMidiMappings(mapper.list());
+    } else if (s.midiMappings.length > 0) {
+      s.midiMappings.forEach((mapping) => mapper.set(mapping));
+      mapper.save();
+      setMappings(mapper.list());
+    }
+    // Load browser-only mapping storage after mount to keep SSR/client markup identical.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapper]);
 
   // Detect iframe AFTER mount to avoid SSR/CSR hydration mismatch.
   const [inIframe, setInIframe] = useState(false);
