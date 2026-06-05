@@ -132,7 +132,7 @@ export function nativeModeOutRequestSysex(globalChannel = 0): number[] {
  */
 export function packetInitSysex(globalChannel = 0): number[][] {
   const g = globalChannel & 0x0f;
-  const head = [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x3f];
+  const head = [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x3f];
 
   // Packet 1 — Scene/Pad init (38 data bytes after [0x27, 0x00]).
   // Quelle: microkontrol_toggle_v3.py (funktionierende Referenz).
