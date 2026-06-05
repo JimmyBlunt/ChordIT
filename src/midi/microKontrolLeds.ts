@@ -55,8 +55,9 @@ export function padLedSysex(
   const ledNum = (padNumber1to16 - 1) & 0x7f;
   const stateByte =
     state === "off" ? 0x00 : state === "on" ? 0x20 : /* blink */ 0x60;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x01, ledNum, stateByte, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x01, ledNum, stateByte, 0xf7];
 }
+
 
 /**
  * Pure: compute the desired pad LED states for the lower two rows
@@ -106,17 +107,18 @@ export function computeAllPadLedStates(s: Pick<State,
  * for the Display LED SysEx (Section 3 (15)/(16)) to take effect.
  */
 export function nativeModeInRequestSysex(globalChannel = 0): number[] {
-  // 9-Byte Korg-Format (Bome/Korg Beispielsequenz, MIDI-Impl Rev 1.0).
-  // Ältere 8-Byte-Variante wird auf vielen Firmware-Ständen ignoriert.
+  // Reference protocol (microkontrol_reference.py): F0 42 4g 6E 00 00 00 01 F7
+  // Byte 4 = 0x00 (NOT 0x08 — that breaks the controller).
   const g = globalChannel & 0x0f;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x00, 0x00, 0x01, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0x01, 0xf7];
 }
 
-/** Native KORG Mode Out Request (9 Bytes) — zurück in normalen MIDI-Mode. */
+/** Native KORG Mode Out Request — F0 42 4g 6E 00 00 00 00 F7 */
 export function nativeModeOutRequestSysex(globalChannel = 0): number[] {
   const g = globalChannel & 0x0f;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x00, 0x00, 0x00, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x00, 0x00, 0x00, 0xf7];
 }
+
 
 /**
  * 4-Packet Init Sequence — nach Native ON nötig, damit der Controller
@@ -130,7 +132,7 @@ export function nativeModeOutRequestSysex(globalChannel = 0): number[] {
  */
 export function packetInitSysex(globalChannel = 0): number[][] {
   const g = globalChannel & 0x0f;
-  const head = [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x3f];
+  const head = [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x3f];
 
   // Packet 1 — Scene/Pad init (38 data bytes after [0x27, 0x00]).
   // Quelle: microkontrol_toggle_v3.py (funktionierende Referenz).
@@ -185,7 +187,7 @@ export function lcdSysex(
     })
     .slice(0, 8);
   while (safe.length < 8) safe.push(0x20);
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x22, 0x09, bn, ...safe, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x22, 0x09, bn, ...safe, 0xf7];
 }
 
 /**

@@ -95,9 +95,13 @@ export const midiManager = {
               if (!midiBridge.hasTarget()) {
                 midiBridge.setTarget(h.midiOut, `SysEx → ${ctrlOutput.name}`);
               }
-              void import("./microKontrolNative").then((m) => m.startNativeInput((cb) => h.onSysEx(cb)));
+              void import("./microKontrolNative").then((m) => {
+                m.startNativeInput((cb) => h.onSysEx(cb));
+                m.startNativePadNotes((cb) => midiManager.subscribe(cb));
+                m.startSubLcdSync(0);
+              });
               void import("./microKontrolLedSync").then((m) => m.startMicroKontrolLedSync(0));
-              void import("./microKontrolNative").then((m) => m.startSubLcdSync(0));
+
             }
           } catch {
             // store may not be hydrated yet; Settings will wire devices manually.
