@@ -9,7 +9,7 @@ const SPOTS: Record<ControlId, Spot> = {
   // Photo has slight barrel: middle columns sit a touch right + lower than
   // a linear interpolation between the (correct) left and right edges.
   // Row 1 — pads 1..4
-  "button.propose":  { x: 7.9,  y: 11.4, w: 5.4, h: 10.4, label: "PROPOSE" },
+  "button.propose":  { x: 8.2,  y: 11.7, w: 5.0, h: 10.1, label: "PROPOSE" },
   "toggle.perform":  { x: 14.6, y: 12.3, w: 4.7, h: 10.1, label: "PERFORM" },
   "toggle.voicing":  { x: 20.5, y: 12.6, w: 4.7, h: 9.8,  label: "VOICING" },
   "toggle.key":      { x: 26.1, y: 12.0, w: 4.7, h: 9.8,  label: "KEY" },
