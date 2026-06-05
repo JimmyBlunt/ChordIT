@@ -55,8 +55,9 @@ export function padLedSysex(
   const ledNum = (padNumber1to16 - 1) & 0x7f;
   const stateByte =
     state === "off" ? 0x00 : state === "on" ? 0x20 : /* blink */ 0x60;
-  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x08, 0x01, ledNum, stateByte, 0xf7];
+  return [0xf0, 0x42, 0x40 | g, 0x6e, 0x00, 0x01, ledNum, stateByte, 0xf7];
 }
+
 
 /**
  * Pure: compute the desired pad LED states for the lower two rows
