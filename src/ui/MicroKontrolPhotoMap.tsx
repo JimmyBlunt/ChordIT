@@ -19,7 +19,7 @@ const SPOTS: Record<ControlId, Spot> = {
   "button.style":    { x: 20.5, y: 24.6, w: 4.7, h: 9.8,  label: "STYLE" },
   "button.mode":     { x: 26.1, y: 24.0, w: 4.7, h: 9.8,  label: "MODE" },
   // Row 3 — pads 9..12 (chord types)
-  "chord.Dim":       { x: 7.9,  y: 36.0, w: 5.4, h: 10.4, label: "DIM" },
+  "chord.Dim":       { x: 8.2,  y: 36.3, w: 5.0, h: 10.1, label: "DIM" },
   "chord.Min":       { x: 14.6, y: 36.9, w: 4.7, h: 10.1, label: "MIN" },
   "chord.Maj":       { x: 20.5, y: 37.2, w: 4.7, h: 9.8,  label: "MAJ" },
   "chord.Sus":       { x: 26.1, y: 36.6, w: 4.7, h: 9.8,  label: "SUS" },
