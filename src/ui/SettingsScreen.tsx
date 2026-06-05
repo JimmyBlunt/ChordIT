@@ -9,7 +9,7 @@ import { midiManager } from "@/midi/midiManager";
 import { startMicroKontrolLedSync, runNativeModeInit, releaseNativeMode, pushAllLeds } from "@/midi/microKontrolLedSync";
 import { startNativeInput, showLcd, startSubLcdSync } from "@/midi/microKontrolNative";
 import { PianoKeyboard } from "@/ui/PianoKeyboard";
-import { MappingDiagram } from "@/ui/MappingDiagram";
+import { MicroKontrolPhotoMap } from "@/ui/MicroKontrolPhotoMap";
 
 type SavedMidiConfig = {
   version: 1;
@@ -632,11 +632,11 @@ export function SettingsScreen() {
         {configMessage && <div className="text-xs text-muted-foreground">{configMessage}</div>}
       </section>
 
-      <MappingDiagram
+      <MicroKontrolPhotoMap
         mappings={mappings}
         learning={learning}
         onClick={(id) => {
-          if (handle) startLearn(id as ControlId);
+          if (handle) startLearn(id);
         }}
       />
 
