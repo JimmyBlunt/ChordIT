@@ -6,26 +6,27 @@ type Spot = { x: number; y: number; w: number; h: number; label: string; shape?:
 // Coordinates are percentages relative to the 846x429 reference image.
 const SPOTS: Record<ControlId, Spot> = {
   // ── Pads (4×4 grid on the left) ────────────────────────────────────────
+  // Columns drift slightly right+down with each step (photo perspective).
   // Row 1 — pads 1..4
   "button.propose":  { x: 6.4,  y: 11.0, w: 5.4, h: 10.4, label: "PROPOSE" },
-  "toggle.perform":  { x: 12.7, y: 11.0, w: 5.4, h: 10.4, label: "PERFORM" },
-  "toggle.voicing":  { x: 19.3, y: 11.0, w: 5.4, h: 10.4, label: "VOICING" },
-  "toggle.key":      { x: 25.9, y: 11.0, w: 5.4, h: 10.4, label: "KEY" },
+  "toggle.perform":  { x: 13.7, y: 11.3, w: 5.4, h: 10.4, label: "PERFORM" },
+  "toggle.voicing":  { x: 21.0, y: 11.6, w: 5.4, h: 10.4, label: "VOICING" },
+  "toggle.key":      { x: 28.3, y: 11.9, w: 5.4, h: 10.4, label: "KEY" },
   // Row 2 — pads 5..8
   "button.loop":     { x: 6.4,  y: 23.4, w: 5.4, h: 10.4, label: "LOOP" },
-  "button.record":   { x: 12.7, y: 23.4, w: 5.4, h: 10.4, label: "REC" },
-  "button.style":    { x: 19.3, y: 23.4, w: 5.4, h: 10.4, label: "STYLE" },
-  "button.mode":     { x: 25.9, y: 23.4, w: 5.4, h: 10.4, label: "MODE" },
+  "button.record":   { x: 13.7, y: 23.7, w: 5.4, h: 10.4, label: "REC" },
+  "button.style":    { x: 21.0, y: 24.0, w: 5.4, h: 10.4, label: "STYLE" },
+  "button.mode":     { x: 28.3, y: 24.3, w: 5.4, h: 10.4, label: "MODE" },
   // Row 3 — pads 9..12 (chord types)
   "chord.Dim":       { x: 6.4,  y: 36.0, w: 5.4, h: 10.4, label: "DIM" },
-  "chord.Min":       { x: 12.7, y: 36.0, w: 5.4, h: 10.4, label: "MIN" },
-  "chord.Maj":       { x: 19.3, y: 36.0, w: 5.4, h: 10.4, label: "MAJ" },
-  "chord.Sus":       { x: 25.9, y: 36.0, w: 5.4, h: 10.4, label: "SUS" },
+  "chord.Min":       { x: 13.7, y: 36.3, w: 5.4, h: 10.4, label: "MIN" },
+  "chord.Maj":       { x: 21.0, y: 36.6, w: 5.4, h: 10.4, label: "MAJ" },
+  "chord.Sus":       { x: 28.3, y: 36.9, w: 5.4, h: 10.4, label: "SUS" },
   // Row 4 — pads 13..16 (extensions)
   "ext.6":           { x: 6.4,  y: 47.4, w: 5.4, h: 10.4, label: "6" },
-  "ext.m7":          { x: 12.7, y: 47.4, w: 5.4, h: 10.4, label: "m7" },
-  "ext.M7":          { x: 19.3, y: 47.4, w: 5.4, h: 10.4, label: "M7" },
-  "ext.9":           { x: 25.9, y: 47.4, w: 5.4, h: 10.4, label: "9" },
+  "ext.m7":          { x: 13.7, y: 47.7, w: 5.4, h: 10.4, label: "m7" },
+  "ext.M7":          { x: 21.0, y: 48.0, w: 5.4, h: 10.4, label: "M7" },
+  "ext.9":           { x: 28.3, y: 48.3, w: 5.4, h: 10.4, label: "9" },
 
   // ── Encoders (top row of knobs, 8) ────────────────────────────────────
   "dial.perform":    { x: 47.2, y: 22.7, w: 5.0, h: 10.0, label: "PERFORM", shape: "circle" },
