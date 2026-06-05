@@ -45,6 +45,7 @@ export type ControlId =
   | "toggle.key"
   | "button.loop"
   | "button.record"
+  | "button.style"
   | "button.mode"
   | "button.propose";
 
@@ -85,6 +86,7 @@ export const ALL_CONTROL_IDS: ControlId[] = [
   "toggle.key",
   "button.loop",
   "button.record",
+  "button.style",
   "button.mode",
   "button.propose",
 ];
@@ -115,6 +117,15 @@ export const DEFAULT_MIDI_MAPPINGS: MidiMapping[] = [
   { controlId: "slider.harp", inputType: "cc", channel: 15, number: 5 },
   { controlId: "slider.harpOctaves", inputType: "cc", channel: 15, number: 6 },
   { controlId: "slider.octaveBase", inputType: "cc", channel: 15, number: 7 },
+  // ── Native Init Pads 1..8 (notes 36..43, Port B, channel 1) ─────────────
+  { controlId: "button.propose", inputType: "note", channel: 0, number: 36 },
+  { controlId: "toggle.perform", inputType: "note", channel: 0, number: 37 },
+  { controlId: "toggle.voicing", inputType: "note", channel: 0, number: 38 },
+  { controlId: "toggle.key", inputType: "note", channel: 0, number: 39 },
+  { controlId: "button.loop", inputType: "note", channel: 0, number: 40 },
+  { controlId: "button.record", inputType: "note", channel: 0, number: 41 },
+  { controlId: "button.style", inputType: "note", channel: 0, number: 42 },
+  { controlId: "button.mode", inputType: "note", channel: 0, number: 43 },
   // ── Native Init Pads 9..16 (notes 44..51, Port B, channel 1) ───────────
   { controlId: "chord.Dim", inputType: "note", channel: 0, number: 44 },
   { controlId: "chord.Min", inputType: "note", channel: 0, number: 45 },

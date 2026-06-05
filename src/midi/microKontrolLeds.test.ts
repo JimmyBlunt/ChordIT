@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   padLedSysex,
   computeChordRowLedStates,
+  computeAllPadLedStates,
   diffLedStates,
   DEFAULT_CHORD_PADS,
   DEFAULT_EXTENSION_PADS,
   nativeModeInRequestSysex,
+  toggleLatchedTopPadLedState,
 } from "@/midi/microKontrolLeds";
 
 describe("microKontrolLeds — SysEx builder", () => {
@@ -56,6 +58,30 @@ describe("microKontrolLeds — state computation", () => {
     expect([...states.keys()].sort((a, b) => a - b)).toEqual([
       9, 10, 11, 12, 13, 14, 15, 16,
     ]);
+  });
+
+  it("latches top pad LEDs as explicit toggle on/off states", () => {
+    const before = computeAllPadLedStates({
+      selectedChordType: "Maj",
+      activeExtensions: [],
+      performanceMode: "Off",
+      keyModeEnabled: false,
+      loopEnabled: false,
+      loopRecording: false,
+    });
+    const next = toggleLatchedTopPadLedState(1);
+    const after = computeAllPadLedStates({
+      selectedChordType: "Maj",
+      activeExtensions: [],
+      performanceMode: "Off",
+      keyModeEnabled: false,
+      loopEnabled: false,
+      loopRecording: false,
+    });
+    expect(before.get(1)).toBe("off");
+    expect(next).toBe("on");
+    expect(after.get(1)).toBe("on");
+    expect(toggleLatchedTopPadLedState(1)).toBe("off");
   });
 });
 

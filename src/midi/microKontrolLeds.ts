@@ -42,6 +42,19 @@ export const DEFAULT_EXTENSION_PADS: Record<ChordExtension, number> = {
 
 export type LedState = "off" | "on" | "blink";
 
+const latchedTopPadLedStates = new Map<number, LedState>(
+  Array.from({ length: 8 }, (_, i) => [i + 1, "off" as LedState]),
+);
+
+export function toggleLatchedTopPadLedState(padNumber1to8: number): LedState {
+  if (padNumber1to8 < 1 || padNumber1to8 > 8) {
+    throw new Error(`top pad must be 1..8, got ${padNumber1to8}`);
+  }
+  const next: LedState = latchedTopPadLedStates.get(padNumber1to8) === "on" ? "off" : "on";
+  latchedTopPadLedStates.set(padNumber1to8, next);
+  return next;
+}
+
 /** Build the 9-byte Display LED SysEx for one pad (1..16). */
 export function padLedSysex(
   globalChannel: number,
@@ -88,14 +101,9 @@ export function computeAllPadLedStates(s: Pick<State,
   "selectedChordType" | "activeExtensions" | "performanceMode" | "keyModeEnabled" | "loopEnabled" | "loopRecording"
 >): Map<number, LedState> {
   const out = computeChordRowLedStates(s.selectedChordType, s.activeExtensions);
-  out.set(1, "blink");
-  out.set(2, s.performanceMode === "Off" ? "off" : "on");
-  out.set(3, "on");
-  out.set(4, s.keyModeEnabled ? "on" : "off");
-  out.set(5, s.loopEnabled ? "on" : "off");
-  out.set(6, s.loopRecording ? "blink" : "off");
-  out.set(7, "on");
-  out.set(8, "on");
+  for (let pad = 1; pad <= 8; pad++) {
+    out.set(pad, latchedTopPadLedStates.get(pad) ?? "off");
+  }
   return out;
 }
 
