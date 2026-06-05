@@ -24,7 +24,7 @@ const SPOTS: Record<ControlId, Spot> = {
   "chord.Maj":       { x: 20.5, y: 37.2, w: 4.7, h: 9.8,  label: "MAJ" },
   "chord.Sus":       { x: 26.1, y: 36.6, w: 4.7, h: 9.8,  label: "SUS" },
   // Row 4 — pads 13..16 (extensions)
-  "ext.6":           { x: 7.9,  y: 47.4, w: 5.4, h: 10.4, label: "6" },
+  "ext.6":           { x: 8.2,  y: 47.7, w: 5.0, h: 10.1, label: "6" },
   "ext.m7":          { x: 14.6, y: 48.3, w: 4.7, h: 10.1, label: "m7" },
   "ext.M7":          { x: 20.5, y: 48.6, w: 4.7, h: 9.8,  label: "M7" },
   "ext.9":           { x: 26.1, y: 48.0, w: 4.7, h: 9.8,  label: "9" },
