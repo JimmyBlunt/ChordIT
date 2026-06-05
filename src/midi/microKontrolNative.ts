@@ -412,11 +412,8 @@ export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () =
     nativeUnsub = null;
   };
 }
-  return () => {
-    nativeUnsub?.();
-    nativeUnsub = null;
-  };
-}
+
+
 
 /**
  * Im funktionierenden Python-Setup (microkontrol_toggle_v3.py) senden die Pads
