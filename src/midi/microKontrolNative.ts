@@ -82,23 +82,25 @@ type NativeEvent =
   | { kind: "switch"; index: number; value: number };
 
 export function parseNativeSysEx(data: number[]): NativeEvent | null {
-  // F0 42 4g 6E 08 <func> nn vv F7 (microKONTROL)
-  // Older references omit the 08 model byte; accept both shapes.
-  if (data.length < 8) return null;
+  // Reference protocol (microkontrol_reference.py):
+  //   F0 42 4g 6E 00 <func> nn vv F7
+  //   func: 0x43 encoder (delta), 0x44 fader (absolute), 0x48 switch
+  // Pads do NOT come as SysEx in Native Mode — they are regular MIDI notes
+  // 36..51 on PORT B (after the 4-packet init).
+  if (data.length < 9) return null;
   if (data[0] !== 0xf0 || data[1] !== 0x42 || data[3] !== 0x6e) return null;
-  const offset = data[4] === 0x08 ? 1 : 0;
-  const func = data[4 + offset];
-  const nn = data[5 + offset];
-  const vv = data[6 + offset];
+  // Accept both byte4 = 0x00 (spec) and 0x08 (some firmware variants)
+  if (data[4] !== 0x00 && data[4] !== 0x08) return null;
+  const func = data[5];
+  const nn = data[6];
+  const vv = data[7];
   switch (func) {
-    case 0x45:
-      return { kind: "pad", index: nn & 0x0f, velocity: vv };
     case 0x43: {
       // 2's complement 7-bit delta
       const delta = vv & 0x40 ? vv - 0x80 : vv;
       return { kind: "encoder", index: nn & 0x0f, delta };
     }
-    case 0x41:
+    case 0x44:
       return { kind: "slider", index: nn & 0x0f, value: vv };
     case 0x48:
       return { kind: "switch", index: nn & 0x0f, value: vv };
@@ -106,6 +108,7 @@ export function parseNativeSysEx(data: number[]): NativeEvent | null {
       return null;
   }
 }
+
 
 // ── Dispatch tables ───────────────────────────────────────────────────────
 const PAD_TO_CHORD: Record<number, ChordType | undefined> = {
