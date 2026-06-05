@@ -383,7 +383,31 @@ export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () =
   if (nativeUnsub) nativeUnsub();
   nativeUnsub = onSysEx((data) => {
     const ev = parseNativeSysEx(data);
-    if (ev) dispatchNativeEvent(ev);
+    if (!ev) return;
+    // Mirror encoders & sliders as synthetic CC messages on channel 15 so the
+    // MIDI Learn pipeline and the default CC mapping dispatcher see them
+    // (Native Mode normally hides these as SysEx). Encoders → CC#16..23,
+    // Sliders/Faders → CC#0..7, matching DEFAULT_MIDI_MAPPINGS.
+    void (async () => {
+      const { midiManager } = await import("./midiManager");
+      if (ev.kind === "encoder") {
+        // Convert 7-bit 2's-complement delta to a CC value on channel 15.
+        // Use 65 for +1 / 63 for -1 so dialDirection (>=64 → forward) works.
+        const cc = 16 + ev.index;
+        const value = ev.delta > 0 ? 65 : ev.delta < 0 ? 63 : 64;
+        midiManager.broadcast({ type: "cc", cc, value, channel: 15 });
+      } else if (ev.kind === "slider") {
+        const cc = ev.index;
+        midiManager.broadcast({ type: "cc", cc, value: ev.value, channel: 15 });
+      } else if (ev.kind === "switch") {
+        // Some firmwares route the top-row buttons through 0x48 — expose as a
+        // CC#48+idx trigger so users can still Learn them if desired.
+        midiManager.broadcast({ type: "cc", cc: 48 + ev.index, value: ev.value, channel: 15 });
+      }
+    })();
+    // Always also drive the built-in Native dispatch so the device works
+    // out-of-the-box without explicit user mappings.
+    dispatchNativeEvent(ev);
   });
   return () => {
     nativeUnsub?.();
