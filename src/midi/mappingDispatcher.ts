@@ -12,6 +12,8 @@ import {
 import { progressionPresets } from "../progressions/progressionPresets";
 import { PATTERNS } from "../performance/patterns";
 import { areNativePadNotesActive, isNativePadNoteNumber, showControlValue, showLcd } from "./microKontrolNative";
+import { midiBridge } from "./midiBridge";
+import { padLedSysex, toggleLatchedTopPadLedState } from "./microKontrolLeds";
 
 const CHORD_TYPES: ChordType[] = ["Dim", "Min", "Maj", "Sus"];
 const EXT_LIST: ChordExtension[] = ["6", "m7", "M7", "9"];
@@ -70,6 +72,10 @@ function isTrigger(msg: MidiMessage): boolean {
   if (msg.type === "noteOn") return msg.velocity > 0;
   if (msg.type === "cc") return msg.value >= 64;
   return false;
+}
+
+function toggleTopPadLed(padNumber1to8: number) {
+  midiBridge.sendSysEx(padLedSysex(0, padNumber1to8, toggleLatchedTopPadLedState(padNumber1to8)));
 }
 
 function dispatch(id: ControlId, msg: MidiMessage) {
@@ -281,36 +287,53 @@ function dispatch(id: ControlId, msg: MidiMessage) {
     }
     case "button.mode": {
       if (!isTrigger(msg)) return;
+      toggleTopPadLed(8);
       s.setHarmonicMode(cycle(ALL_HARMONIC_MODES, s.harmonicMode, 1));
       return;
     }
     case "toggle.perform": {
       if (!isTrigger(msg)) return;
-      s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, 1));
+      toggleTopPadLed(2);
+      s.setPerformanceMode(s.performanceMode === "Off" ? "Strum" : "Off");
       return;
     }
     case "toggle.voicing": {
       if (!isTrigger(msg)) return;
+      toggleTopPadLed(3);
       s.setVoicingMode(cycle(VOICING_MODES, s.voicingMode, 1));
       return;
     }
     case "toggle.key": {
       if (!isTrigger(msg)) return;
+      toggleTopPadLed(4);
       s.toggleKeyMode();
       return;
     }
     case "button.loop": {
       if (!isTrigger(msg)) return;
+      toggleTopPadLed(5);
       s.setLoopEnabled(!s.loopEnabled);
       return;
     }
     case "button.record": {
       if (!isTrigger(msg)) return;
+      toggleTopPadLed(6);
       s.setLoopRecording(!s.loopRecording);
+      return;
+    }
+    case "button.style": {
+      if (!isTrigger(msg)) return;
+      toggleTopPadLed(7);
+      s.setHarmonicStyle(cycle(ALL_HARMONIC_STYLES, s.harmonicStyle, 1));
       return;
     }
     case "button.propose": {
       if (!isTrigger(msg)) return;
+      toggleTopPadLed(1);
+      if (s.proposals.length > 0) {
+        s.setProposals([]);
+        return;
+      }
       void (async () => {
         const [{ generateProposals }, { progressionPresets }] = await Promise.all([
           import("../propose/proposeEngine"),

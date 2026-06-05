@@ -27,7 +27,7 @@ import {
 import { progressionPresets } from "../progressions/progressionPresets";
 import { PATTERNS } from "../performance/patterns";
 import type { ChordExtension, ChordType, VoicingMode } from "../chord/chordTypes";
-import { lcdSysex, type LcdColor } from "./microKontrolLeds";
+import { lcdSysex, padLedSysex, toggleLatchedTopPadLedState, type LcdColor } from "./microKontrolLeds";
 
 const VOICING_MODES: VoicingMode[] = ["Split", "Octave"];
 
@@ -140,8 +140,15 @@ function cycle<T>(arr: readonly T[], current: T, dir: number): T {
  */
 function handleTopPad(index: number) {
   const s = useChorditStore.getState();
+  const padNumber = index + 1;
+  midiBridge.sendSysEx(padLedSysex(lcdGlobalChannel, padNumber, toggleLatchedTopPadLedState(padNumber)));
   switch (index) {
     case 0: {
+      if (s.proposals.length > 0) {
+        s.setProposals([]);
+        showLcd("PROPOSE", "OFF");
+        return;
+      }
       void (async () => {
         const [{ generateProposals }, { progressionPresets: pp }] = await Promise.all([
           import("../propose/proposeEngine"),
@@ -168,7 +175,7 @@ function handleTopPad(index: number) {
       return;
     }
     case 1:
-      s.setPerformanceMode(cycle(PERFORMANCE_MODES, s.performanceMode, 1));
+      s.setPerformanceMode(s.performanceMode === "Off" ? "Strum" : "Off");
       showLcd("PERFORM", useChorditStore.getState().performanceMode.toUpperCase());
       return;
     case 2:
