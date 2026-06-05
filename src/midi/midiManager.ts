@@ -143,6 +143,10 @@ export const midiManager = {
       messageSubs.delete(cb);
     };
   },
+  /** Inject a synthetic MIDI message (e.g. parsed from Native-Mode SysEx) into all subscribers. */
+  broadcast(msg: MidiMessage) {
+    messageSubs.forEach((s) => s(msg));
+  },
   onHandle(cb: (h: WebMidiHandle | null, err: string | null) => void): () => void {
     handleSubs.add(cb);
     cb(handle, lastError);

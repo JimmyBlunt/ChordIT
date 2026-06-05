@@ -383,13 +383,37 @@ export function startNativeInput(onSysEx: (cb: (data: number[]) => void) => () =
   if (nativeUnsub) nativeUnsub();
   nativeUnsub = onSysEx((data) => {
     const ev = parseNativeSysEx(data);
-    if (ev) dispatchNativeEvent(ev);
+    if (!ev) return;
+    // Encoders & sliders/faders come in as SysEx in Native Mode and would be
+    // invisible to the standard MIDI Learn pipeline and the CC mapping
+    // dispatcher. Mirror them as synthetic CC messages on channel 15 so they
+    // can be Learned and routed through the regular dispatcher
+    // (DEFAULT_MIDI_MAPPINGS uses channel 15, CC#16..23 / CC#0..7).
+    if (ev.kind === "encoder" || ev.kind === "slider" || ev.kind === "switch") {
+      void import("./midiManager").then(({ midiManager }) => {
+        if (ev.kind === "encoder") {
+          // 7-bit 2's-complement delta → CC value where 65=+1, 63=-1
+          // (dialDirection treats >=64 as forward).
+          const value = ev.delta > 0 ? 65 : ev.delta < 0 ? 63 : 64;
+          midiManager.broadcast({ type: "cc", cc: 16 + ev.index, value, channel: 15 });
+        } else if (ev.kind === "slider") {
+          midiManager.broadcast({ type: "cc", cc: ev.index, value: ev.value, channel: 15 });
+        } else {
+          midiManager.broadcast({ type: "cc", cc: 48 + ev.index, value: ev.value, channel: 15 });
+        }
+      });
+      return; // do NOT also run native dispatch — the CC path covers it
+    }
+    // Pads (and anything else) still go through the native dispatch.
+    dispatchNativeEvent(ev);
   });
   return () => {
     nativeUnsub?.();
     nativeUnsub = null;
   };
 }
+
+
 
 /**
  * Im funktionierenden Python-Setup (microkontrol_toggle_v3.py) senden die Pads
