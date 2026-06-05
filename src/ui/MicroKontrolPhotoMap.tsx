@@ -9,25 +9,26 @@ const SPOTS: Record<ControlId, Spot> = {
   // Photo has slight barrel: middle columns sit a touch right + lower than
   // a linear interpolation between the (correct) left and right edges.
   // Row 1 — pads 1..4
-  "button.propose":  { x: 6.4,  y: 11.0, w: 5.4, h: 10.4, label: "PROPOSE" },
-  "toggle.perform":  { x: 14.6, y: 11.6, w: 5.4, h: 10.4, label: "PERFORM" },
-  "toggle.voicing":  { x: 22.0, y: 11.6, w: 5.4, h: 10.4, label: "VOICING" },
-  "toggle.key":      { x: 28.3, y: 11.0, w: 5.4, h: 10.4, label: "KEY" },
+  "button.propose":  { x: 7.9,  y: 11.4, w: 5.4, h: 10.4, label: "PROPOSE" },
+  "toggle.perform":  { x: 15.5, y: 12.0, w: 5.4, h: 10.4, label: "PERFORM" },
+  "toggle.voicing":  { x: 21.2, y: 12.0, w: 5.4, h: 10.4, label: "VOICING" },
+  "toggle.key":      { x: 26.8, y: 11.4, w: 5.4, h: 10.4, label: "KEY" },
   // Row 2 — pads 5..8
-  "button.loop":     { x: 6.4,  y: 23.4, w: 5.4, h: 10.4, label: "LOOP" },
-  "button.record":   { x: 14.6, y: 24.0, w: 5.4, h: 10.4, label: "REC" },
-  "button.style":    { x: 22.0, y: 24.0, w: 5.4, h: 10.4, label: "STYLE" },
-  "button.mode":     { x: 28.3, y: 23.4, w: 5.4, h: 10.4, label: "MODE" },
+  "button.loop":     { x: 7.9,  y: 23.4, w: 5.4, h: 10.4, label: "LOOP" },
+  "button.record":   { x: 15.5, y: 24.0, w: 5.4, h: 10.4, label: "REC" },
+  "button.style":    { x: 21.2, y: 24.0, w: 5.4, h: 10.4, label: "STYLE" },
+  "button.mode":     { x: 26.8, y: 23.4, w: 5.4, h: 10.4, label: "MODE" },
   // Row 3 — pads 9..12 (chord types)
-  "chord.Dim":       { x: 6.4,  y: 36.0, w: 5.4, h: 10.4, label: "DIM" },
-  "chord.Min":       { x: 14.6, y: 36.6, w: 5.4, h: 10.4, label: "MIN" },
-  "chord.Maj":       { x: 22.0, y: 36.6, w: 5.4, h: 10.4, label: "MAJ" },
-  "chord.Sus":       { x: 28.3, y: 36.0, w: 5.4, h: 10.4, label: "SUS" },
+  "chord.Dim":       { x: 7.9,  y: 36.0, w: 5.4, h: 10.4, label: "DIM" },
+  "chord.Min":       { x: 15.5, y: 36.6, w: 5.4, h: 10.4, label: "MIN" },
+  "chord.Maj":       { x: 21.2, y: 36.6, w: 5.4, h: 10.4, label: "MAJ" },
+  "chord.Sus":       { x: 26.8, y: 36.0, w: 5.4, h: 10.4, label: "SUS" },
   // Row 4 — pads 13..16 (extensions)
-  "ext.6":           { x: 6.4,  y: 47.4, w: 5.4, h: 10.4, label: "6" },
-  "ext.m7":          { x: 14.6, y: 48.0, w: 5.4, h: 10.4, label: "m7" },
-  "ext.M7":          { x: 22.0, y: 48.0, w: 5.4, h: 10.4, label: "M7" },
-  "ext.9":           { x: 28.3, y: 47.4, w: 5.4, h: 10.4, label: "9" },
+  "ext.6":           { x: 7.9,  y: 47.4, w: 5.4, h: 10.4, label: "6" },
+  "ext.m7":          { x: 15.5, y: 48.0, w: 5.4, h: 10.4, label: "m7" },
+  "ext.M7":          { x: 21.2, y: 48.0, w: 5.4, h: 10.4, label: "M7" },
+  "ext.9":           { x: 26.8, y: 47.4, w: 5.4, h: 10.4, label: "9" },
+
 
   // ── Encoders (top row of knobs, 8) ────────────────────────────────────
   "dial.perform":    { x: 47.2, y: 22.7, w: 5.0, h: 10.0, label: "PERFORM", shape: "circle" },
